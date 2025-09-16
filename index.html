@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Moments — Social, Stories, DMs (GitHub Pages)</title>
-  <meta name="description" content="GitHub-Pages–only social app: profiles, reels, stories, and DMs. No servers." />
+  <title>Moments — Pages-only Social</title>
+  <meta name="description" content="Pages-only social app: profiles, reels, stories, DMs, editor — single repo, no servers." />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html,body{height:100%}
     .radial-bg{background-image:
-      radial-gradient(1100px 500px at 10% -10%, rgba(59,130,246,.12), transparent),
+      radial-gradient(1100px 500px at 10% -10%, rgba(59,130,246,.10), transparent),
       radial-gradient(1000px 500px at 90% -10%, rgba(217,70,239,.10), transparent)}
     .card{box-shadow:0 10px 30px rgba(2,6,23,.06)}
     .chip{font-size:.72rem;padding:.2rem .6rem;border-radius:999px;background:rgba(0,0,0,.08)}
@@ -17,6 +17,8 @@
     .mom-item{scroll-snap-align:center}
     .story-progress{height:6px;background:rgba(255,255,255,.25)}
     .story-progress > div{height:100%;background:#fff;width:0%}
+    .thumb{aspect-ratio:1/1;object-fit:cover}
+    .btn{border:1px solid rgba(0,0,0,.1);background:#fff;padding:.4rem .7rem;border-radius:.75rem;box-shadow:0 1px 2px rgba(0,0,0,.06);font-size:.8rem}
   </style>
 </head>
 <body class="min-h-screen radial-bg text-slate-900">
@@ -29,47 +31,49 @@
           <div class="h-9 w-9 animate-[spin_9s_linear_infinite] rounded-xl bg-gradient-to-br from-sky-300 via-fuchsia-300 to-amber-300"></div>
           <div>
             <div class="text-xs uppercase tracking-widest text-black/60">Moments</div>
-            <div class="text-lg font-extrabold leading-5">Instinct social — Pages only</div>
+            <div class="text-lg font-extrabold leading-5">Pages-only Social</div>
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <input id="search" placeholder="Search moments…" class="w-56 max-w-[60vw] rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm shadow-sm outline-none placeholder:text-black/40 focus:border-black/20 focus:ring-2 focus:ring-black/10" />
-          <button id="btnSignIn" class="rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold shadow-sm">🔐 Sign in</button>
-          <span id="userBadge" class="hidden rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold shadow-sm"></span>
-          <button id="btnSignOut" class="hidden rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold shadow-sm">Sign out</button>
-          <button id="openSettings" class="rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold shadow-sm">⚙</button>
+          <input id="search" placeholder="Search…" class="w-56 max-w-[60vw] rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm shadow-sm outline-none placeholder:text-black/40 focus:border-black/20 focus:ring-2 focus:ring-black/10" />
+          <button id="btnSignIn" class="btn">🔐 Sign in</button>
+          <span id="userBadge" class="hidden btn"></span>
+          <button id="btnSignOut" class="hidden btn">Sign out</button>
+          <button id="openSettings" class="btn">⚙</button>
         </div>
       </div>
       <nav class="mt-3 flex flex-wrap gap-2">
-        <button data-tab="home" class="tab-btn rounded-full bg-white px-3 py-1 text-xs font-semibold shadow">Feed</button>
-        <button data-tab="moments" class="tab-btn rounded-full px-3 py-1 text-xs font-semibold text-black/70">Moments</button>
-        <button data-tab="chat" class="tab-btn rounded-full px-3 py-1 text-xs font-semibold text-black/70">Communication</button>
-        <button data-tab="profile" class="tab-btn rounded-full px-3 py-1 text-xs font-semibold text-black/70">Profile</button>
+        <button data-tab="home" class="tab-btn btn bg-white shadow">Feed</button>
+        <button data-tab="moments" class="tab-btn btn">Moments</button>
+        <button data-tab="chat" class="tab-btn btn">Communication</button>
+        <button data-tab="profile" class="tab-btn btn">Profile</button>
       </nav>
     </div>
   </header>
 
   <main class="mx-auto max-w-6xl px-4 py-6 space-y-8">
 
-    <!-- HOME FEED (reads from indexes/moments.json) -->
+    <!-- HOME / FEED (autoplay grid) -->
     <section id="tab-home" class="space-y-6">
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="flex items-center justify-between">
           <div class="text-xs uppercase tracking-widest text-black/50">For You</div>
-          <div class="flex gap-2 text-xs"><span class="chip">Scroll</span><span class="chip">Auto-play</span></div>
+          <div class="flex gap-2 text-xs"><span class="chip">Scroll</span><span class="chip">Autoplay</span></div>
         </div>
         <div id="homeFeed" class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
       </div>
     </section>
 
-    <!-- MOMENTS (Stories row + composer + vertical reels feed) -->
+    <!-- MOMENTS -->
     <section id="tab-moments" class="hidden space-y-4">
-      <!-- Stories row -->
+
+      <!-- Stories (multi-upload) -->
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="flex items-center justify-between">
           <div class="text-xs uppercase tracking-widest text-black/50">Stories (48h)</div>
-          <label class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm cursor-pointer">
-            ➕ Add Story <input id="storyFile" type="file" accept="video/*,image/*" class="hidden">
+          <label class="btn cursor-pointer">
+            ➕ Add Stories (up to 4)
+            <input id="storyFiles" type="file" accept="video/*,image/*" multiple class="hidden">
           </label>
         </div>
         <div id="storiesRow" class="mt-3 flex gap-3 overflow-x-auto pb-2"></div>
@@ -80,14 +84,22 @@
         <div class="order-2 lg:order-1 lg:col-span-1 rounded-2xl border border-black/10 bg-white/80 p-4 card h-max">
           <div class="text-xs uppercase tracking-widest text-black/50">Create a Moment</div>
           <div class="mt-3 grid gap-2 text-sm">
-            <label class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 shadow-sm cursor-pointer">📤 Upload video/image
-              <input id="momFile" type="file" accept="video/*,image/*" class="hidden">
+            <label class="btn cursor-pointer">📤 Upload media (video OR up to 4 images)
+              <input id="momFiles" type="file" accept="video/*,image/*" multiple class="hidden">
             </label>
+            <div id="momThumbs" class="grid grid-cols-4 gap-2"></div>
+            <div class="flex gap-2">
+              <button id="openStudio" class="btn">🎨 Open Studio Pro</button>
+              <button id="clearSel" class="btn">✖ Clear</button>
+            </div>
             <input id="momCaption" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Caption" />
             <input id="momTags" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="#tags, comma separated" />
             <input id="momLink" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Optional link (https://)" />
-            <button id="momPost" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Post Moment</button>
-            <small class="text-black/50">Media is uploaded to this repo and served from GitHub Pages.</small>
+            <div class="flex gap-2">
+              <button id="momPost" class="btn">Post Moment</button>
+              <button id="saveDraft" class="btn">Save Draft</button>
+            </div>
+            <small class="text-black/50">Media uploads to this repo and serves from GitHub Pages.</small>
           </div>
         </div>
 
@@ -111,7 +123,7 @@
           <div id="chatLog" class="mt-3 h-72 overflow-y-auto rounded-xl border border-black/5 bg-white/70 p-3 text-sm"></div>
           <div class="mt-3 flex gap-2">
             <input id="chatMsg" class="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10" placeholder="Type a message…" />
-            <button id="chatSend" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm font-semibold shadow-sm">Send</button>
+            <button id="chatSend" class="btn">Send</button>
           </div>
         </div>
         <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
@@ -119,7 +131,7 @@
           <div class="mt-3 grid gap-2 text-sm">
             <input id="peopleSearch" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Search people (name or @login)" />
             <div id="peopleList" class="mt-1 grid gap-2 max-h-72 overflow-y-auto"></div>
-            <small class="text-black/50">Shows users who have signed up (created profiles).</small>
+            <small class="text-black/50">Users appear after they sign up (create profile).</small>
           </div>
         </div>
       </div>
@@ -139,8 +151,9 @@
           </div>
           <div>
             <textarea id="profBio" rows="3" class="w-full rounded-xl border border-black/10 bg-white/80 p-3 text-sm" placeholder="Your bio"></textarea>
-            <div class="mt-2 text-right">
-              <button id="profSave" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Save Profile</button>
+            <div class="mt-2 flex items-center justify-between">
+              <input id="profDisplayName" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="Display name">
+              <button id="profSave" class="btn">Save Profile</button>
             </div>
           </div>
         </div>
@@ -153,371 +166,318 @@
     <div>All data stored in this repo (GitHub Pages). No servers.</div>
   </footer>
 
-  <!-- Modal (settings, story viewer) -->
+  <!-- Modal (settings / story viewer / confirmations) -->
   <div id="modal" class="hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"></div>
 
-  <!-- 👉👉 Paste Part 2 (the big <script> block) right before </body> 👇 -->
+  <!-- Studio Pro Modal -->
+  <div id="studio" class="hidden fixed inset-0 z-[60] bg-black/60 p-4">
+    <div class="mx-auto max-w-4xl w-full bg-white rounded-2xl shadow p-4">
+      <div class="flex items-center justify-between">
+        <div class="text-xs uppercase tracking-widest text-black/50">Studio Pro</div>
+        <div class="flex gap-2">
+          <button id="studioExport" class="btn">Export</button>
+          <button id="studioClose" class="btn">Close</button>
+        </div>
+      </div>
+      <div class="mt-3 grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div class="lg:col-span-2 bg-black rounded-xl overflow-hidden relative">
+          <canvas id="studioCanvas" class="w-full h-full"></canvas>
+        </div>
+        <div class="space-y-3 text-sm">
+          <div>
+            <div class="font-semibold text-black/70 mb-1">Transform</div>
+            <label>Zoom <input id="stZoom" type="range" min="0.5" max="3" step="0.01" value="1"></label>
+            <label class="block">Rotate <input id="stRotate" type="range" min="-180" max="180" step="1" value="0"></label>
+            <label class="block">Pan X <input id="stPanX" type="range" min="-500" max="500" step="1" value="0"></label>
+            <label class="block">Pan Y <input id="stPanY" type="range" min="-500" max="500" step="1" value="0"></label>
+          </div>
+          <div>
+            <div class="font-semibold text-black/70 mb-1">Filters</div>
+            <label>Brightness <input id="stBright" type="range" min="0" max="2" step="0.01" value="1"></label>
+            <label class="block">Contrast <input id="stContrast" type="range" min="0" max="2" step="0.01" value="1"></label>
+            <label class="block">Saturation <input id="stSat" type="range" min="0" max="3" step="0.01" value="1"></label>
+            <label class="block">Hue <input id="stHue" type="range" min="-180" max="180" step="1" value="0"></label>
+            <label class="block">Blur <input id="stBlur" type="range" min="0" max="6" step="0.1" value="0"></label>
+          </div>
+          <div class="space-y-2">
+            <div class="font-semibold text-black/70 mb-1">Overlays</div>
+            <button id="stAddText" class="btn w-full">Add Text</button>
+            <button id="stAddEmoji" class="btn w-full">Add Emoji</button>
+            <button id="stAddSticker" class="btn w-full">Add Sticker</button>
+            <div class="text-xs text-black/60">Drag overlays freely. Click to edit text. Delete with ⌫/Delete.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
----
-
-# Part 2 — App logic (paste just before `</body>`)
-
-```html
+  <!-- 👉👉 Paste PART 2 (script) right before </body> -->
 <script>
 /* =========================================================================
-   Moments (Pages-only) — Single-repo architecture
-   Repo used for BOTH hosting and data: hunter9201/moments
-   Pages base: https://hunter9201.github.io/moments
+   Moments — Pages-only Social (single repo)
+   Repo: hunter9201/moments
+   Pages: https://hunter9201.github.io/moments
    ========================================================================= */
-const GH = {
-  owner: 'hunter9201',
-  repo: 'moments',
-  pagesBase: 'https://hunter9201.github.io/moments'
-};
+const GH = { owner:'hunter9201', repo:'moments', pagesBase:'https://hunter9201.github.io/moments' };
 
-// ---------- Tiny helpers ----------
-const S = { cfg:'mh:cfg' };
+// ----------------- helpers -----------------
+const S = { cfg:'mh:cfg', draft:'mh:draft' };
 const $ = (id)=>document.getElementById(id);
-const get = (k,d)=>{ try{ const v=JSON.parse(localStorage.getItem(k)); return v??d }catch{ return d } };
+const get = (k,d)=>{ try{const v=JSON.parse(localStorage.getItem(k)); return v??d}catch{return d} };
 const set = (k,v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)) }catch{} };
 const token = ()=> (get(S.cfg,{}).gh_pat||'').trim();
 const b64e = (s)=> btoa(unescape(encodeURIComponent(s)));
 const b64d = (s)=> { try{ return decodeURIComponent(escape(atob(s.replace(/\n/g,'')))) }catch{ return atob(s.replace(/\n/g,'')) } };
 const rand = ()=> Math.random().toString(36).slice(2,9);
 const nowISO = ()=> new Date().toISOString();
-const pagesURL = (path)=> `${GH.pagesBase}/${path.replace(/^\/+/,'')}`;
+const pagesURL = (p)=> `${GH.pagesBase}/${p.replace(/^\/+/,'')}`;
+const clamp = (v,min,max)=> Math.max(min, Math.min(max, v));
 
-// ---------- GitHub API (Contents) ----------
+// ----------------- GitHub API (contents) -----------------
 async function api(path, opts={}) {
   const h = { 'Accept':'application/vnd.github+json' };
-  const t = token(); if(t) h['Authorization'] = `token ${t}`;
-  const res = await fetch(`https://api.github.com${path}`, { ...opts, headers: { ...h, ...(opts.headers||{}) } });
-  if(!res.ok) throw new Error(`${opts.method||'GET'} ${path} → ${res.status}`);
-  return res.json();
+  if(token()) h['Authorization'] = `token ${token()}`;
+  const r = await fetch(`https://api.github.com${path}`, { ...opts, headers:{...h, ...(opts.headers||{})} });
+  if(!r.ok) throw new Error(`${opts.method||'GET'} ${path} → ${r.status}`);
+  return r.json();
 }
-async function defaultBranch(){ 
+async function defaultBranch(){
   const ck='mh:defbranch'; const c=localStorage.getItem(ck); if(c) return c;
-  const j = await api(`/repos/${GH.owner}/${GH.repo}`); const b = j.default_branch || 'main';
+  const j = await api(`/repos/${GH.owner}/${GH.repo}`); const b=j.default_branch||'main';
   localStorage.setItem(ck,b); return b;
 }
 async function getFile(path){
-  try {
+  try{
     const br = await defaultBranch();
     const j = await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(br)}`);
-    if(j && j.content) { const txt = b64d(j.content); try { return { sha:j.sha, text:txt, json: JSON.parse(txt) } } catch { return { sha:j.sha, text:txt, json:null } } }
+    if(j && j.content){ const t=b64d(j.content); try{ return { sha:j.sha, text:t, json: JSON.parse(t) } }catch{ return { sha:j.sha, text:t, json:null } } }
     return { sha:j.sha, text:null, json:null };
-  } catch(e){ if(String(e).includes('404')) return null; throw e }
+  }catch(e){ if(String(e).includes('404')) return null; throw e }
 }
-async function putJson(path, obj, message){
+async function putJson(path, obj, msg){
   const br = await defaultBranch();
   const cur = await getFile(path);
-  const body = { message: message||`update ${path}`, content: b64e(JSON.stringify(obj,null,2)), branch: br };
+  const body = { message: msg||`update ${path}`, content: b64e(JSON.stringify(obj,null,2)), branch: br };
   if(cur && cur.sha) body.sha = cur.sha;
   await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}`, { method:'PUT', body: JSON.stringify(body) });
 }
-async function putFile(path, file, message){
+async function putFile(path, file, msg){
   const br = await defaultBranch();
   const buf = await file.arrayBuffer();
   const content = btoa(String.fromCharCode(...new Uint8Array(buf)));
   const cur = await getFile(path);
-  const body = { message: message||`upload ${path}`, content, branch: br };
+  const body = { message: msg||`upload ${path}`, content, branch: br };
   if(cur && cur.sha) body.sha = cur.sha;
   await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}`, { method:'PUT', body: JSON.stringify(body) });
-  return pagesURL(path); // Pages-hosted URL
+  return pagesURL(path);
 }
 
-// ---------- Auth / Sign up ----------
+// ----------------- Auth / Profile -----------------
 async function ghMe(){
   if(!token()) return null;
-  const r = await fetch(`https://api.github.com/user`, { headers:{ 'Authorization':`token ${token()}` }});
+  const r = await fetch('https://api.github.com/user', { headers:{'Authorization':`token ${token()}`} });
   if(!r.ok) return null; return r.json();
 }
 function renderUserBadge(){
-  const badge = $('userBadge'), out=$('btnSignOut'), inb=$('btnSignIn');
-  const cfg = get(S.cfg,{});
-  if(cfg.gh_login){
-    badge.textContent = `@${cfg.gh_login}`;
-    badge.classList.remove('hidden'); out.classList.remove('hidden'); inb.classList.add('hidden');
-  }else{
-    badge.classList.add('hidden'); out.classList.add('hidden'); inb.classList.remove('hidden');
-  }
+  const badge=$('userBadge'), out=$('btnSignOut'), inn=$('btnSignIn');
+  const cfg=get(S.cfg,{});
+  if(cfg.gh_login){ badge.textContent='@'+cfg.gh_login; badge.classList.remove('hidden'); out.classList.remove('hidden'); inn.classList.add('hidden') }
+  else{ badge.classList.add('hidden'); out.classList.add('hidden'); inn.classList.remove('hidden') }
 }
 async function ensureProfile(){
-  const me = await ghMe();
-  if(!me) throw new Error('Paste a GitHub fine-grained PAT with Contents: Read & Write for this repo.');
+  const me = await ghMe(); if(!me) throw new Error('Paste a fine-grained PAT with Contents: Read & Write for this repo.');
   const login = me.login;
   const path = `profiles/${login}.json`;
   const cur = await getFile(path);
-  const now = nowISO();
-  const prof = cur?.json || { login, display_name: me.name||login, bio:'', avatar_url: me.avatar_url||'', created_at: now };
-  await putJson(path, prof, `profile: ${login}`);
-  // profiles index
+  const p = cur?.json || { login, display_name: me.name||login, bio:'', avatar_url: me.avatar_url||'', created_at: nowISO() };
+  await putJson(path, p, `profile: ${login}`);
+  // index
   const idxPath = 'indexes/profiles.json';
-  const idxCur = await getFile(idxPath); let arr = Array.isArray(idxCur?.json)? idxCur.json : [];
-  arr = [{ login, display_name: prof.display_name, avatar_url: prof.avatar_url }, ...arr.filter(x=>x.login!==login)];
+  const idxCur = await getFile(idxPath); let arr = Array.isArray(idxCur?.json)? idxCur.json: [];
+  arr = [{ login, display_name: p.display_name, avatar_url: p.avatar_url }, ...arr.filter(x=>x.login!==login)];
   if(arr.length>5000) arr = arr.slice(0,5000);
   await putJson(idxPath, arr, `index(profiles): add ${login}`);
-  // cache for UI
-  set(S.cfg,{...get(S.cfg,{}), gh_login:login, gh_name:prof.display_name, gh_avatar:prof.avatar_url});
-  renderUserBadge();
-  loadPeople();
-  loadProfileUI();
-  return prof;
+  set(S.cfg,{...get(S.cfg,{}), gh_login: login, gh_name: p.display_name, gh_avatar: p.avatar_url});
+  renderUserBadge(); loadPeople(); loadProfileUI();
 }
 $('btnSignIn').onclick = async ()=>{
-  let pat = token();
-  if(!pat){
-    pat = prompt('Paste your GitHub fine-grained PAT (Contents: Read & Write for this repo)');
-    if(!pat) return;
-    set(S.cfg,{...get(S.cfg,{}), gh_pat: pat.trim()});
+  if(!token()){
+    const pat = prompt('Paste GitHub fine-grained PAT (Contents: Read & Write for this repo)');
+    if(!pat) return; set(S.cfg,{...get(S.cfg,{}), gh_pat: pat.trim()});
   }
   try{ await ensureProfile(); alert('Signed in ✓'); }catch(e){ alert(e.message||String(e)) }
 };
-$('btnSignOut').onclick = ()=>{
-  set(S.cfg,{...get(S.cfg,{}), gh_pat:'', gh_login:'', gh_name:'', gh_avatar:''});
-  renderUserBadge(); alert('Signed out');
-};
+$('btnSignOut').onclick = ()=>{ set(S.cfg,{...get(S.cfg,{}), gh_pat:'', gh_login:'', gh_name:'', gh_avatar:''}); renderUserBadge(); alert('Signed out'); };
 renderUserBadge();
 
-// ---------- Tabs ----------
+async function loadProfileUI(){
+  const me=get(S.cfg,{}).gh_login; if(!me){ $('profName').textContent='Not signed in'; $('profHandle').textContent='—'; $('profAvatar').src=''; return }
+  $('profHandle').textContent='@'+me;
+  const pf=await getFile(`profiles/${me}.json`); const p=pf?.json||{};
+  $('profName').textContent=p.display_name||me;
+  $('profDisplayName').value=p.display_name||'';
+  $('profBio').value=p.bio||'';
+  $('profAvatar').src=p.avatar_url||'';
+}
+$('profSave').onclick = async ()=>{
+  const me=get(S.cfg,{}).gh_login; if(!me) return alert('Sign in first');
+  const pf=await getFile(`profiles/${me}.json`); const p=pf?.json||{ login:me, created_at:nowISO() };
+  p.display_name = $('profDisplayName').value.trim() || p.display_name || me;
+  p.bio = $('profBio').value||'';
+  await putJson(`profiles/${me}.json`, p, `profile update: ${me}`);
+  // update index row
+  const idxCur = await getFile('indexes/profiles.json'); let arr=Array.isArray(idxCur?.json)? idxCur.json: [];
+  arr = [{ login:me, display_name:p.display_name, avatar_url:p.avatar_url||'' }, ...arr.filter(x=>x.login!==me)];
+  await putJson('indexes/profiles.json', arr, `index(profiles): update ${me}`);
+  alert('Profile saved ✓'); loadPeople(); loadProfileUI(); renderFeeds();
+};
+
+// ----------------- Tabs -----------------
 const tabs = ['home','moments','chat','profile'];
-function switchTab(t){ tabs.forEach(k=> $(`tab-${k}`).classList.toggle('hidden', k!==t)); }
+function switchTab(t){ tabs.forEach(k=> $(`tab-${k}`).classList.toggle('hidden', k!==t)) }
 document.querySelectorAll('.tab-btn').forEach(b=> b.addEventListener('click', ()=> switchTab(b.dataset.tab)));
 switchTab('home');
 
-// ---------- Profile panel ----------
-async function loadProfileUI(){
-  const me = get(S.cfg,{}).gh_login; if(!me){ $('profName').textContent='Not signed in'; $('profHandle').textContent='—'; $('profAvatar').src=''; return; }
-  $('profHandle').textContent = '@'+me;
-  const profFile = await getFile(`profiles/${me}.json`); const p = profFile?.json || {};
-  $('profName').textContent = p.display_name || me;
-  $('profBio').value = p.bio || '';
-  $('profAvatar').src = p.avatar_url || '';
-}
-$('profSave').onclick = async ()=>{
-  const me = get(S.cfg,{}).gh_login; if(!me) return alert('Sign in first');
-  const profFile = await getFile(`profiles/${me}.json`); const p = profFile?.json || { login:me, created_at: nowISO() };
-  p.display_name = $('profName').textContent || p.display_name || me;
-  p.bio = $('profBio').value || '';
-  await putJson(`profiles/${me}.json`, p, `profile update: ${me}`);
-  // Also update index name if needed
-  const idxCur = await getFile('indexes/profiles.json'); let arr = Array.isArray(idxCur?.json)? idxCur.json: [];
-  arr = [{ login: me, display_name: p.display_name, avatar_url: p.avatar_url||'' }, ...arr.filter(x=>x.login!==me)];
-  await putJson('indexes/profiles.json', arr, `index(profiles): update ${me}`);
-  alert('Profile saved ✓'); loadPeople(); renderFeeds();
-};
-loadProfileUI();
-
-// ---------- People directory ----------
+// ----------------- People + DMs -----------------
 async function fetchJson(url){ try{ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) return null; return r.json(); }catch{ return null } }
-async function profilesIndex(){
-  const j = await fetchJson(pagesURL('indexes/profiles.json'));
-  return Array.isArray(j)? j : [];
-}
+async function profilesIndex(){ const j = await fetchJson(pagesURL('indexes/profiles.json')); return Array.isArray(j)? j:[]; }
 async function loadPeople(){
-  const list = $('peopleList'); if(!list) return;
-  list.innerHTML = `<div class='text-xs text-black/60'>Loading…</div>`;
-  const q = ($('peopleSearch')?.value||'').toLowerCase().trim();
-  const me = get(S.cfg,{}).gh_login||'';
-  const idx = await profilesIndex();
-  const filtered = idx.filter(p=> p.login!==me && (!q || (p.display_name?.toLowerCase().includes(q) || p.login.toLowerCase().includes(q))));
-  if(!filtered.length){ list.innerHTML = `<div class='text-xs text-black/60'>No people yet.</div>`; return }
-  list.innerHTML = '';
-  filtered.forEach(p=>{
-    const row = document.createElement('button');
-    row.className='flex items-center justify-between rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-left shadow-sm';
-    row.innerHTML = `<div class='flex items-center gap-2'>${p.avatar_url? `<img src='${p.avatar_url}' class='h-6 w-6 rounded-full'>`:''}<div><div class='font-semibold'>${p.display_name||p.login}</div><div class='text-[11px] text-black/60'>@${p.login}</div></div></div><span class='text-xs'>Chat</span>`;
-    row.onclick = ()=> openDM(p.login);
-    list.appendChild(row);
-  });
+  const list=$('peopleList'); if(!list) return; list.innerHTML=`<div class='text-xs text-black/60'>Loading…</div>`;
+  const q=($('peopleSearch')?.value||'').toLowerCase().trim(); const me=get(S.cfg,{}).gh_login||'';
+  const idx=await profilesIndex(); const filtered=idx.filter(p=> p.login!==me && (!q || (p.display_name?.toLowerCase().includes(q)||p.login.toLowerCase().includes(q))));
+  if(!filtered.length){ list.innerHTML=`<div class='text-xs text-black/60'>No people yet.</div>`; return }
+  list.innerHTML=''; filtered.forEach(p=>{
+    const row=document.createElement('button'); row.className='flex items-center justify-between rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-left shadow-sm';
+    row.innerHTML=`<div class='flex items-center gap-2'>${p.avatar_url? `<img src='${p.avatar_url}' class='h-6 w-6 rounded-full'>`:''}<div><div class='font-semibold'>${p.display_name||p.login}</div><div class='text-[11px] text-black/60'>@${p.login}</div></div></div><span class='text-xs'>Chat</span>`;
+    row.onclick=()=> openDM(p.login); list.appendChild(row);
+  })
 }
-$('peopleSearch')?.addEventListener('input', loadPeople);
-loadPeople();
+$('peopleSearch')?.addEventListener('input', loadPeople); loadPeople();
 
-// ---------- DMs ----------
 function threadId(a,b){ return [a,b].sort().join('__') }
 async function loadThread(peer){
-  const me = get(S.cfg,{}).gh_login; if(!me){ $('dmTitle').textContent='Sign in to chat'; $('chatLog').innerHTML=''; return }
+  const me=get(S.cfg,{}).gh_login; if(!me){ $('dmTitle').textContent='Sign in to chat'; $('chatLog').innerHTML=''; return }
   $('dmTitle').textContent = `Chat with @${peer}`;
-  const id = threadId(me, peer);
-  const t = await fetchJson(pagesURL(`dms/${id}.json`)) || { id, messages:[] };
+  const id=threadId(me,peer); const t=await fetchJson(pagesURL(`dms/${id}.json`)) || { id, messages:[] };
   renderThread(t);
 }
 function renderThread(t){
   const host=$('chatLog'); if(!host) return; host.innerHTML='';
-  const me = get(S.cfg,{}).gh_login||'';
+  const me=get(S.cfg,{}).gh_login||'';
   (t.messages||[]).forEach(m=>{
-    const mine = m.author===me;
-    const div = document.createElement('div'); div.className=`mb-2 ${mine?'text-right':''}`;
-    div.innerHTML = `<div class='inline-block rounded-xl px-3 py-2 text-sm ${mine?'bg-sky-100':'bg-white/70'}'>${m.text}</div>
-                     <div class='text-[10px] text-black/50'>${new Date(m.ts).toLocaleString()}</div>`;
+    const mine=m.author===me;
+    const div=document.createElement('div'); div.className=`mb-2 ${mine?'text-right':''}`;
+    div.innerHTML=`<div class='inline-block rounded-xl px-3 py-2 text-sm ${mine?'bg-sky-100':'bg-white/70'}'>${m.text}</div><div class='text-[10px] text-black/50'>${new Date(m.ts).toLocaleString()}</div>`;
     host.appendChild(div);
   });
-  host.scrollTop = host.scrollHeight;
+  host.scrollTop=host.scrollHeight;
 }
 $('chatSend').onclick = async ()=>{
-  const peer = ($('dmTitle').textContent||'').replace(/^Chat with @/,'').trim();
-  const text = ($('chatMsg').value||'').trim(); if(!peer || !text) return;
+  const peer=($('dmTitle').textContent||'').replace(/^Chat with @/,'').trim();
+  const text=($('chatMsg').value||'').trim(); if(!peer||!text) return;
   try{
-    const me = await ghMe(); if(!me) return alert('Sign in first');
-    const id = threadId(me.login, peer);
-    const path = `dms/${id}.json`;
-    const cur = await getFile(path);
-    const thread = cur?.json || { id, participants: [me.login, peer], messages: [] };
-    thread.messages.push({ id: `${Date.now()}_${rand()}`, author: me.login, text, ts: Date.now() });
-    await putJson(path, thread, `dm: ${me.login} → ${peer}`);
-    $('chatMsg').value=''; renderThread(thread);
+    const me=await ghMe(); if(!me) return alert('Sign in first');
+    const id=threadId(me.login,peer); const path=`dms/${id}.json`;
+    const cur=await getFile(path); const t=cur?.json||{ id, participants:[me.login,peer], messages:[] };
+    t.messages.push({ id:`${Date.now()}_${rand()}`, author:me.login, text, ts:Date.now() });
+    await putJson(path, t, `dm: ${me.login} → ${peer}`);
+    $('chatMsg').value=''; renderThread(t);
   }catch(e){ alert(e.message||String(e)) }
 };
-async function openDM(peerLogin){ await loadThread(peerLogin); }
-window.openDM = openDM;
+async function openDM(peer){ await loadThread(peer) } window.openDM=openDM;
 
-// ---------- Moments (reels) ----------
-async function profilesMap(){ const arr = await profilesIndex(); const m={}; arr.forEach(p=> m[p.login]=p); return m }
+// ----------------- Moments (feed + actions) -----------------
+async function pmap(){ const arr=await profilesIndex(); const m={}; arr.forEach(p=> m[p.login]=p); return m; }
+
 function momentCard(m, prof){
-  const name = prof?.display_name || m.author || 'user';
-  const avatar = prof?.avatar_url || '';
-  const wrap = document.createElement('div'); wrap.className='mom-item rounded-2xl border border-black/10 bg-black/90 text-white overflow-hidden relative';
-  wrap.dataset.searchable = `${m.caption||''} ${(m.tags||[]).join(' ')}`.toLowerCase();
+  const name=prof?.display_name||m.author||'user', avatar=prof?.avatar_url||'';
+  const wrap=document.createElement('div'); wrap.className='mom-item rounded-2xl border border-black/10 bg-black/90 text-white overflow-hidden relative';
+  wrap.dataset.searchable=`${m.caption||''} ${(m.tags||[]).join(' ')}`.toLowerCase();
+  const mediaHTML = (m.media && m.media.length>1)
+    ? `<div class='absolute left-2 top-2 text-xs bg-white/20 rounded px-2 py-0.5'>${m.media.length} photos</div>` : '';
   wrap.innerHTML = `
     <div class='aspect-[9/16] w-full relative'>
       ${m.kind==='video'
-        ? `<video class='mom-video absolute inset-0 h-full w-full object-cover' src='${m.media_url||m.src}' playsinline muted loop></video>`
-        : `<img class='absolute inset-0 h-full w-full object-cover' src='${m.media_url||m.src}' alt=''>`}
+        ? `<video class='mom-video absolute inset-0 h-full w-full object-cover' src='${m.media?.[0]?.url||m.media_url||m.src}' playsinline muted loop></video>`
+        : `<img class='absolute inset-0 h-full w-full object-cover' src='${m.media?.[0]?.url||m.media_url||m.src}' alt=''>`}
+      ${mediaHTML}
       <div class='absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 to-black/0'>
         <div class='flex items-center gap-2'>${avatar? `<img src='${avatar}' class='h-5 w-5 rounded-full'>`:''}<div class='text-sm font-semibold'>${name}</div></div>
         <div class='text-sm opacity-90'>${m.caption||''}</div>
         <div class='text-xs opacity-70'>${(m.tags||[]).map(t=>'#'+t).join(' ')}</div>
       </div>
       <div class='absolute right-2 top-2 flex flex-col gap-2'>
-        ${m.link? `<a class='rounded-full bg-white/10 px-3 py-1 text-xs' target='_blank' href='${m.link}'>🔗 Link</a>`:''}
+        <button class='btn likeBtn' data-id='${m.id}'>❤ ${m.likes||0}</button>
+        <button class='btn cmtBtn' data-id='${m.id}'>💬 ${m.comments?.length||0}</button>
+        ${m.link? `<a class='btn' target='_blank' href='${m.link}'>🔗</a>`:''}
+        <button class='btn delBtn ${isMine(m.author)?'':'hidden'}' data-id='${m.id}'>🗑</button>
+      </div>
+    </div>
+    ${m.media && m.media.length>1 ? `<div class='bg-white text-slate-900 p-2 flex gap-2 overflow-x-auto'>${m.media.map((mm,i)=> mm.kind==='image'? `<img src='${mm.url}' class='h-16 w-16 rounded object-cover'>`:`<span class='text-xs bg-black/5 rounded px-2 py-1'>video</span>`).join('')}</div>`:''}
+    <div class='p-3 bg-white text-slate-900'>
+      <div class='flex items-center gap-2'>
+        <input class='cmtInput grow rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm' placeholder='Add a comment…'>
+        <button class='btn cmtSend' data-id='${m.id}'>Send</button>
+      </div>
+      <div class='mt-2 space-y-1 text-sm max-h-32 overflow-y-auto' id='cmt-${m.id}'>
+        ${(m.comments||[]).slice(-8).map(c=> `<div><b>${c.author}</b>: ${c.text}</div>`).join('')}
       </div>
     </div>`;
   return wrap;
 }
+function isMine(author){ return (get(S.cfg,{}).gh_login||'')===author }
+
 async function renderMoments(){
-  const host = $('momFeed'); if(!host) return; host.innerHTML='';
-  const idx = await fetchJson(pagesURL('indexes/moments.json')) || [];
-  if(!idx.length){ host.innerHTML = `<div class='text-sm text-white/80 p-3'>No moments yet — be the first to post!</div>`; return }
-  const pmap = await profilesMap();
-  idx.forEach(m=> host.appendChild(momentCard(m, pmap[m.author])));
+  const host=$('momFeed'); if(!host) return; host.innerHTML='';
+  const idx=await fetchJson(pagesURL('indexes/moments.json')) || [];
+  if(!idx.length){ host.innerHTML=`<div class='text-sm text-white/80 p-3'>No moments yet — be the first to post!</div>`; return }
+  const map=await pmap();
+  idx.forEach(m=> host.appendChild(momentCard(m, map[m.author])));
+  wireMomentActions(host);
   // autoplay
-  const vids = Array.from(document.querySelectorAll('.mom-video'));
-  if('IntersectionObserver' in window){
-    const obs = new IntersectionObserver((entries)=> entries.forEach(en=>{
-      const v=en.target; if(en.isIntersecting && en.intersectionRatio>0.6){ v.play().catch(()=>{}) } else { v.pause() }
-    }), {threshold:[0,0.6,1]});
-    vids.forEach(v=> obs.observe(v));
-  } else { vids.forEach(v=> v.play && v.play().catch(()=>{})); }
+  const vids=[...host.querySelectorAll('.mom-video')];
+  attachObserver(vids);
+}
+function wireMomentActions(scope){
+  scope.querySelectorAll('.likeBtn').forEach(b=> b.onclick = async ()=>{
+    const id=b.dataset.id; const me=await ghMe(); if(!me) return alert('Sign in first');
+    const mf=await getFile(`moments/${id}.json`); if(!mf?.json) return;
+    const m=mf.json; m.likes=(m.likes||0)+1; await putJson(`moments/${id}.json`, m, `like: ${id}`);
+    const cur=await getFile('indexes/moments.json'); let arr=Array.isArray(cur?.json)? cur.json:[]; arr=arr.map(x=> x.id===id? {...x, likes:m.likes }: x);
+    await putJson('indexes/moments.json', arr, `index(moments): like ${id}`);
+    b.textContent='❤ '+m.likes;
+  });
+  scope.querySelectorAll('.delBtn').forEach(b=> b.onclick = async ()=>{
+    const id=b.dataset.id; if(!confirm('Delete this post?')) return;
+    const me=get(S.cfg,{}).gh_login; const mf=await getFile(`moments/${id}.json`); if(mf?.json?.author!==me) return alert('Only author can delete.');
+    // GitHub contents delete requires SHA — reuse mf.sha:
+    const br=await defaultBranch();
+    await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(`moments/${id}.json`)}`, { method:'DELETE', body: JSON.stringify({ message:`delete moment ${id}`, sha: mf.sha, branch: br }) });
+    const cur=await getFile('indexes/moments.json'); let arr=Array.isArray(cur?.json)? cur.json:[]; arr=arr.filter(x=> x.id!==id);
+    await putJson('indexes/moments.json', arr, `index(moments): remove ${id}`);
+    renderMoments(); renderHome();
+  });
+  scope.querySelectorAll('.cmtSend').forEach(btn=> btn.onclick = async ()=>{
+    const id=btn.dataset.id; const me=await ghMe(); if(!me) return alert('Sign in first');
+    const wrap=btn.closest('.p-3'); const input=wrap.querySelector('.cmtInput'); const text=(input.value||'').trim(); if(!text) return;
+    const mf=await getFile(`moments/${id}.json`); const m=mf?.json; if(!m) return;
+    m.comments = m.comments||[]; m.comments.push({ id:`${Date.now()}_${rand()}`, author: me.login, text, ts: Date.now() });
+    await putJson(`moments/${id}.json`, m, `comment: ${id}`);
+    const cur=await getFile('indexes/moments.json'); let arr=Array.isArray(cur?.json)? cur.json:[]; arr=arr.map(x=> x.id===id? {...x, comments:m.comments.slice(-2) }: x);
+    await putJson('indexes/moments.json', arr, `index(moments): comment ${id}`);
+    input.value=''; const list=$(`cmt-${id}`); const p=document.createElement('div'); p.innerHTML = `<b>${me.login}</b>: ${text}`; list.appendChild(p); list.scrollTop=list.scrollHeight;
+  });
 }
 
-// Composer -> upload -> write moment json -> update index
-let momFileObj = null;
-$('momFile').addEventListener('change', (e)=>{ momFileObj = e.target.files?.[0] || null; if(momFileObj) $('momCaption').focus(); });
-$('momPost').onclick = async ()=>{
-  if(!momFileObj) return alert('Upload a video or image first');
-  const me = await ghMe(); if(!me) return alert('Sign in first');
-  try{
-    const ymd = new Date().toISOString().slice(0,10);
-    const folder = momFileObj.type.startsWith('video') ? `media/moments/video/${ymd}` : `media/moments/image/${ymd}`;
-    const fname = `${Date.now()}_${rand()}_${(momFileObj.name||'file').replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-    const fullPath = `${folder}/${fname}`;
-    const mediaUrl = await putFile(fullPath, momFileObj, `moment media: ${me.login}`);
-    const meta = {
-      id: `${Date.now()}_${rand()}`,
-      author: me.login,
-      kind: momFileObj.type.startsWith('video') ? 'video':'image',
-      src: mediaUrl, media_url: mediaUrl,
-      caption: $('momCaption').value.trim(),
-      tags: $('momTags').value.split(',').map(s=>s.trim().replace(/^#/,'')).filter(Boolean),
-      link: $('momLink').value.trim() || null,
-      created_at: nowISO()
-    };
-    await putJson(`moments/${meta.id}.json`, meta, `moment: ${meta.id}`);
-    // update index
-    const cur = await getFile('indexes/moments.json'); let idx = Array.isArray(cur?.json)? cur.json : [];
-    idx = [meta, ...idx.filter(x=>x.id!==meta.id)]; if(idx.length>2000) idx = idx.slice(0,2000);
-    await putJson('indexes/moments.json', idx, `index(moments): add ${meta.id}`);
-    // reset form
-    $('momCaption').value=''; $('momTags').value=''; $('momLink').value=''; $('momFile').value=''; momFileObj=null;
-    alert('Posted ✓'); renderMoments(); renderHome();
-  }catch(e){ alert(e.message||String(e)) }
-};
-
-// ---------- Stories (48h) ----------
-function storyChip(s, prof){
-  const name = prof?.display_name || s.author || 'Story';
-  const el = document.createElement('button'); el.className='flex flex-col items-center gap-1';
-  el.innerHTML = `<span class='block h-16 w-16 rounded-full border-2 border-fuchsia-400 overflow-hidden'>
-    ${s.kind==='image' ? `<img src='${s.thumb||s.src}' class='h-full w-full object-cover'>` : `<video src='${s.src}' class='h-full w-full object-cover' muted></video>`}
-  </span><span class='text-[11px] max-w-20 truncate'>${name}</span>`;
-  el.onclick = ()=> openStoryViewer(s);
-  return el;
-}
-async function renderStories(){
-  const row = $('storiesRow'); if(!row) return; row.innerHTML='';
-  const all = await fetchJson(pagesURL('indexes/stories.json')) || [];
-  const active = all.filter(s=> !s.expires_at || new Date(s.expires_at).getTime() > Date.now());
-  if(!active.length){ row.innerHTML = `<div class="text-xs text-black/60">No active stories</div>`; return }
-  const pmap = await profilesMap();
-  active.forEach(s=> row.appendChild(storyChip(s, pmap[s.author])));
-}
-function openStoryViewer(story){
-  const modal = $('modal'); modal.classList.remove('hidden');
-  modal.innerHTML = `
-    <div class='w-full max-w-sm rounded-2xl bg-black text-white overflow-hidden'>
-      <div class='story-progress'><div id='stBar'></div></div>
-      <div id='stWrap' class='aspect-[9/16] w-full bg-black grid place-items-center'></div>
-      <div class='p-3 flex items-center justify-between text-sm'>
-        <div id='stMeta' class='truncate'></div>
-        <div class='flex gap-2'>
-          <button id='stClose' class='chip bg-white/10'>Close</button>
-        </div>
-      </div>
-    </div>`;
-  const bar=$('stBar'), wrap=$('stWrap'), meta=$('stMeta');
-  if(story.kind==='video'){ const v=document.createElement('video'); v.src=story.src; v.autoplay=true; v.muted=true; v.playsInline=true; v.className='h-full w-full object-cover'; wrap.appendChild(v); }
-  else{ const img=document.createElement('img'); img.src=story.src; img.className='h-full w-full object-cover'; wrap.appendChild(img); }
-  meta.textContent = (story.author||'') + (story.caption? ' — '+story.caption:'');
-  let t0=Date.now(), dur=7000, timer=setInterval(()=>{ const p=Math.min(1,(Date.now()-t0)/dur); bar.style.width=(p*100)+'%'; if(p>=1){ clearInterval(timer); modal.classList.add('hidden'); } }, 50);
-  $('stClose').onclick = ()=>{ clearInterval(timer); modal.classList.add('hidden'); };
-}
-$('storyFile').addEventListener('change', async (e)=>{
-  const f = e.target.files?.[0]; if(!f) return;
-  const me = await ghMe(); if(!me) { alert('Sign in first'); e.target.value=''; return }
-  try{
-    const ymd = new Date().toISOString().slice(0,10);
-    const folder = f.type.startsWith('video') ? `media/stories/video/${ymd}` : `media/stories/image/${ymd}`;
-    const fullPath = `${folder}/${Date.now()}_${rand()}_${(f.name||'file').replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-    const url = await putFile(fullPath, f, `story media: ${me.login}`);
-    const meta = {
-      id: `${Date.now()}_${rand()}`,
-      author: me.login,
-      kind: f.type.startsWith('video') ? 'video' : 'image',
-      src: url, thumb: url,
-      caption: 'New story',
-      created_at: nowISO(),
-      expires_at: new Date(Date.now() + 48*60*60*1000).toISOString()
-    };
-    await putJson(`stories/${meta.id}.json`, meta, `story: ${meta.id}`);
-    const cur = await getFile('indexes/stories.json'); let idx = Array.isArray(cur?.json)? cur.json : [];
-    idx = [meta, ...idx.filter(x=>x.id!==meta.id)];
-    await putJson('indexes/stories.json', idx, `index(stories): add ${meta.id}`);
-    alert('Story posted ✓'); renderStories();
-  }catch(e){ alert(e.message||String(e)) }
-  e.target.value='';
-});
-
-// ---------- Home feed (grid from moments index) ----------
+// ----------------- Home feed (grid + autoplay) -----------------
 function homeCard(m, prof){
-  const name = prof?.display_name || m.author || 'user';
-  const avatar = prof?.avatar_url || '';
-  const el = document.createElement('div'); el.className='group overflow-hidden rounded-2xl border bg-white shadow card';
-  el.innerHTML = `
+  const name=prof?.display_name||m.author||'user', avatar=prof?.avatar_url||'';
+  const el=document.createElement('div'); el.className='group overflow-hidden rounded-2xl border bg-white shadow card';
+  el.innerHTML=`
     <div class="relative">
       ${m.kind==='video'
-        ? `<video class='h-56 w-full object-cover' src='${m.media_url||m.src}' muted playsinline loop></video>`
-        : `<img class='h-56 w-full object-cover' src='${m.media_url||m.src}' alt=''>`}
+        ? `<video class='feed-video h-56 w-full object-cover' src='${m.media?.[0]?.url||m.media_url||m.src}' muted playsinline loop></video>`
+        : `<img class='h-56 w-full object-cover' src='${m.media?.[0]?.url||m.media_url||m.src}' alt=''>`}
       <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 text-white">
         <div class="flex items-center gap-2 text-sm">
           ${avatar? `<img src='${avatar}' class='h-5 w-5 rounded-full border border-white/20'>`:''}
@@ -525,68 +485,323 @@ function homeCard(m, prof){
         </div>
         <div class="text-xs opacity-90">${m.caption||''}</div>
       </div>
-    </div>
-  `;
+    </div>`;
   return el;
 }
 async function renderHome(){
-  const host = $('homeFeed'); if(!host) return; host.innerHTML='';
-  const idx = await fetchJson(pagesURL('indexes/moments.json')) || [];
-  const pmap = await profilesMap();
-  if(!idx.length){ host.innerHTML = `<div class='text-xs text-black/60'>No posts yet.</div>`; return }
-  idx.forEach(m=> host.appendChild(homeCard(m, pmap[m.author])));
+  const host=$('homeFeed'); if(!host) return; host.innerHTML='';
+  const idx=await fetchJson(pagesURL('indexes/moments.json')) || [];
+  const map=await pmap();
+  if(!idx.length){ host.innerHTML=`<div class='text-xs text-black/60'>No posts yet.</div>`; return }
+  idx.forEach(m=> host.appendChild(homeCard(m, map[m.author])));
+  const vids=[...host.querySelectorAll('.feed-video')]; attachObserver(vids);
 }
-function renderFeeds(){ renderHome(); renderMoments(); renderStories(); }
-renderFeeds();
+function attachObserver(videos){
+  if(!('IntersectionObserver' in window)) { videos.forEach(v=> v.play?.()); return }
+  const obs=new IntersectionObserver((entries)=> entries.forEach(en=>{
+    const v=en.target; if(en.isIntersecting && en.intersectionRatio>0.6){ v.play().catch(()=>{}) } else { v.pause?.() }
+  }), {threshold:[0,0.6,1]});
+  videos.forEach(v=> obs.observe(v));
+}
 
-// ---------- Search (client filter) ----------
+// ----------------- Search -----------------
 $('search').addEventListener('input', (e)=>{
-  const q = e.target.value.toLowerCase().trim();
-  // home
-  Array.from(($('homeFeed')||{}).children||[]).forEach(c=> c.style.display = c.textContent.toLowerCase().includes(q) ? '' : 'none');
-  // moments
-  Array.from(($('momFeed')||{}).children||[]).forEach(c=> c.style.display = (c.dataset.searchable||'').includes(q) ? '' : 'none');
+  const q=e.target.value.toLowerCase().trim();
+  [...($('homeFeed')?.children||[])].forEach(c=> c.style.display = c.textContent.toLowerCase().includes(q)? '' : 'none');
+  [...($('momFeed')?.children||[])].forEach(c=> c.style.display = (c.dataset.searchable||'').includes(q)? '' : 'none');
 });
 
-// ---------- Keyboard nav for reels ----------
+// ----------------- Composer (multi-image, studio, posting) -----------------
+let momSelected = []; // [{file, name, edited?:true}]
+function resetComposer(){
+  momSelected=[]; $('momThumbs').innerHTML=''; $('momFiles').value=''; $('momCaption').value=''; $('momTags').value=''; $('momLink').value='';
+}
+$('clearSel').onclick = resetComposer;
+
+$('momFiles').addEventListener('change', (e)=>{
+  const files=[...(e.target.files||[])];
+  // exclusive: either video(1) or images(up to 4)
+  const hasVideo=files.some(f=> f.type.startsWith('video'));
+  let chosen=[];
+  if(hasVideo){ chosen=[files.find(f=> f.type.startsWith('video'))]; }
+  else{ chosen=files.filter(f=> f.type.startsWith('image')).slice(0,4); }
+  momSelected = chosen.map(f=> ({ file:f, name:f.name }));
+  drawThumbs();
+});
+function drawThumbs(){
+  const host=$('momThumbs'); host.innerHTML='';
+  momSelected.forEach((o,idx)=>{
+    const url=URL.createObjectURL(o.file);
+    const btn=document.createElement('button');
+    btn.className='relative rounded overflow-hidden border border-black/10';
+    btn.title='Click to edit in Studio Pro';
+    btn.innerHTML=`<img src='${url}' class='thumb w-full rounded'>${o.edited? "<span class='absolute bottom-1 right-1 text-[10px] bg-white/80 rounded px-1'>edited</span>":""}`;
+    btn.onclick=()=> openStudioWithFile(idx);
+    host.appendChild(btn);
+  });
+}
+$('saveDraft').onclick = ()=>{
+  if(!momSelected.length) return alert('Select media first');
+  const draft = {
+    caption:$('momCaption').value,
+    tags:$('momTags').value,
+    link:$('momLink').value,
+    files: momSelected.map(o=> ({ name:o.name, size:o.file.size, type:o.file.type }))
+  };
+  set(S.draft,draft); alert('Draft saved locally ✓');
+};
+
+// Post moment
+$('momPost').onclick = async ()=>{
+  if(!momSelected.length) return alert('Upload media first');
+  const me=await ghMe(); if(!me) return alert('Sign in first');
+  try{
+    const ymd=new Date().toISOString().slice(0,10);
+    const isVideo=momSelected.length===1 && momSelected[0].file.type.startsWith('video');
+    let media=[];
+    if(isVideo){
+      const f=momSelected[0].file;
+      const url=await putFile(`media/moments/video/${ymd}/${Date.now()}_${rand()}_${safeName(f.name)}`, f, `moment video: ${me.login}`);
+      media=[{ kind:'video', url }];
+    }else{
+      for(const o of momSelected){
+        const url=await putFile(`media/moments/image/${ymd}/${Date.now()}_${rand()}_${safeName(o.file.name)}`, o.file, `moment image: ${me.login}`);
+        media.push({ kind:'image', url });
+      }
+    }
+    const meta = {
+      id:`${Date.now()}_${rand()}`,
+      author: me.login,
+      kind: isVideo? 'video' : 'image',
+      media,
+      src: media[0].url, media_url: media[0].url,
+      caption:$('momCaption').value.trim(),
+      tags:$('momTags').value.split(',').map(s=>s.trim().replace(/^#/,'')).filter(Boolean),
+      link:$('momLink').value.trim()||null,
+      created_at: nowISO(),
+      likes:0, comments:[]
+    };
+    await putJson(`moments/${meta.id}.json`, meta, `moment: ${meta.id}`);
+    const cur=await getFile('indexes/moments.json'); let idx=Array.isArray(cur?.json)? cur.json: [];
+    idx=[meta, ...idx.filter(x=>x.id!==meta.id)].slice(0,2000);
+    await putJson('indexes/moments.json', idx, `index(moments): add ${meta.id}`);
+    alert('Posted ✓'); resetComposer(); renderMoments(); renderHome(); switchTab('moments');
+  }catch(e){ alert(e.message||String(e)) }
+};
+function safeName(n){ return (n||'file').replace(/[^a-zA-Z0-9._-]/g,'_') }
+
+// ----------------- Stories (multi-upload up to 4) -----------------
+$('storyFiles').addEventListener('change', async (e)=>{
+  const files=[...(e.target.files||[])].slice(0,4); if(!files.length) return;
+  const me=await ghMe(); if(!me) { alert('Sign in first'); e.target.value=''; return }
+  try{
+    const ymd=new Date().toISOString().slice(0,10);
+    const added=[];
+    for(const f of files){
+      const folder = f.type.startsWith('video')? `media/stories/video/${ymd}` : `media/stories/image/${ymd}`;
+      const url = await putFile(`${folder}/${Date.now()}_${rand()}_${safeName(f.name)}`, f, `story media: ${me.login}`);
+      const meta = {
+        id:`${Date.now()}_${rand()}`,
+        author: me.login,
+        kind: f.type.startsWith('video')? 'video' : 'image',
+        src:url, thumb:url, caption:'New story',
+        created_at: nowISO(),
+        expires_at: new Date(Date.now()+48*60*60*1000).toISOString()
+      };
+      await putJson(`stories/${meta.id}.json`, meta, `story: ${meta.id}`); added.push(meta);
+    }
+    const cur=await getFile('indexes/stories.json'); let idx=Array.isArray(cur?.json)? cur.json: [];
+    idx=[...added, ...idx].slice(0,3000);
+    await putJson('indexes/stories.json', idx, `index(stories): add ${added.length}`);
+    alert(`Posted ${added.length} stor${added.length>1?'ies':'y'} ✓`); renderStories();
+  }catch(e){ alert(e.message||String(e)) }
+  e.target.value='';
+});
+
+// ----------------- Stories render/viewer -----------------
+function storyChip(s, prof){
+  const name=prof?.display_name||s.author||'Story';
+  const el=document.createElement('button'); el.className='flex flex-col items-center gap-1';
+  el.innerHTML=`<span class='block h-16 w-16 rounded-full border-2 border-fuchsia-400 overflow-hidden'>
+      ${s.kind==='image'? `<img src='${s.thumb||s.src}' class='h-full w-full object-cover'>`:`<video src='${s.src}' class='h-full w-full object-cover' muted></video>`}
+    </span><span class='text-[11px] max-w-20 truncate'>${name}</span>`;
+  el.onclick=()=> openStoryViewer(s); return el;
+}
+async function renderStories(){
+  const row=$('storiesRow'); if(!row) return; row.innerHTML='';
+  const all=await fetchJson(pagesURL('indexes/stories.json'))||[]; const active=all.filter(s=> !s.expires_at || new Date(s.expires_at).getTime()>Date.now());
+  if(!active.length){ row.innerHTML=`<div class="text-xs text-black/60">No active stories</div>`; return }
+  const map=await pmap(); active.forEach(s=> row.appendChild(storyChip(s, map[s.author])));
+}
+function openStoryViewer(story){
+  const modal=$('modal'); modal.classList.remove('hidden');
+  modal.innerHTML=`
+    <div class='w-full max-w-sm rounded-2xl bg-black text-white overflow-hidden'>
+      <div class='story-progress'><div id='stBar'></div></div>
+      <div id='stWrap' class='aspect-[9/16] w-full bg-black grid place-items-center'></div>
+      <div class='p-3 flex items-center justify-between text-sm'>
+        <div id='stMeta' class='truncate'></div>
+        <div class='flex gap-2'><button id='stClose' class='chip bg-white/10'>Close</button></div>
+      </div>
+    </div>`;
+  const bar=$('stBar'), wrap=$('stWrap'), meta=$('stMeta');
+  if(story.kind==='video'){ const v=document.createElement('video'); v.src=story.src; v.autoplay=true; v.muted=true; v.playsInline=true; v.className='h-full w-full object-cover'; wrap.appendChild(v); }
+  else{ const img=document.createElement('img'); img.src=story.src; img.className='h-full w-full object-cover'; wrap.appendChild(img); }
+  meta.textContent=(story.author||'') + (story.caption? ' — '+story.caption:'');
+  let t0=Date.now(), dur=7000, timer=setInterval(()=>{ const p=Math.min(1,(Date.now()-t0)/dur); bar.style.width=(p*100)+'%'; if(p>=1){ clearInterval(timer); modal.classList.add('hidden'); }},50);
+  $('stClose').onclick=()=>{ clearInterval(timer); modal.classList.add('hidden'); };
+}
+
+// ----------------- Render all feeds once -----------------
+async function renderFeeds(){ await renderHome(); await renderMoments(); await renderStories(); }
+renderFeeds();
+
+// ----------------- Keyboard nav for reels -----------------
 document.addEventListener('keydown', (e)=>{
   if($('tab-moments').classList.contains('hidden')) return;
-  const host = $('momFeed');
-  if(e.key.toLowerCase()==='j'){ host.scrollBy({top:host.clientHeight*0.9, behavior:'smooth'}) }
+  const host=$('momFeed'); if(e.key.toLowerCase()==='j'){ host.scrollBy({top:host.clientHeight*0.9, behavior:'smooth'}) }
   if(e.key.toLowerCase()==='k'){ host.scrollBy({top:-host.clientHeight*0.9, behavior:'smooth'}) }
 });
 
-// ---------- Settings modal (change PAT / info) ----------
+// ----------------- Settings modal -----------------
 $('openSettings').onclick = ()=>{
-  const modal = $('modal'); modal.classList.remove('hidden');
-  modal.innerHTML = `
-    <div class='max-w-md w-full rounded-2xl bg-white p-4'>
-      <div class='flex items-center justify-between mb-2'>
-        <div class='text-xs uppercase tracking-widest text-black/50'>Settings</div>
-        <button class='chip' id='setClose'>Close</button>
-      </div>
-      <div class='space-y-3 text-sm'>
-        <div>
-          <div class='font-semibold'>Repository</div>
-          <div class='text-black/60'><code>${GH.owner}/${GH.repo}</code> — Pages base <code>${GH.pagesBase}</code></div>
-        </div>
-        <label class='block'>Personal Access Token (PAT)
-          <input id='ghToken' type='password' class='mt-1 w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm' placeholder='ghp_… (Fine-grained; Contents: Read & Write)'>
-        </label>
-        <div class='text-xs text-black/60'>Stored locally in your browser.</div>
-        <div class='flex justify-end gap-2'>
-          <button id='setSave' class='chip'>Save</button>
-        </div>
-      </div>
-    </div>`;
-  $('ghToken').value = token();
-  $('setClose').onclick = ()=> modal.classList.add('hidden');
-  $('setSave').onclick = async ()=>{
-    set(S.cfg,{...get(S.cfg,{}), gh_pat: $('ghToken').value.trim()});
-    modal.classList.add('hidden');
-    try{ await ensureProfile(); alert('Saved & signed in ✓'); }catch(e){ alert(e.message||String(e)) }
-  };
+  const modal=$('modal'); modal.classList.remove('hidden');
+  modal.innerHTML=`
+  <div class='max-w-md w-full rounded-2xl bg-white p-4'>
+    <div class='flex items-center justify-between mb-2'>
+      <div class='text-xs uppercase tracking-widest text-black/50'>Settings</div>
+      <button class='chip' id='setClose'>Close</button>
+    </div>
+    <div class='space-y-3 text-sm'>
+      <div><div class='font-semibold'>Repository</div><div class='text-black/60'><code>${GH.owner}/${GH.repo}</code> — ${GH.pagesBase}</div></div>
+      <label class='block'>Personal Access Token (PAT)
+        <input id='ghToken' type='password' class='mt-1 w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm' placeholder='ghp_… (fine-grained; Contents: Read & Write)'>
+      </label>
+      <div class='text-xs text-black/60'>Stored locally in your browser only.</div>
+      <div class='flex justify-end gap-2'><button id='setSave' class='chip'>Save</button></div>
+    </div>
+  </div>`;
+  $('ghToken').value=token();
+  $('setClose').onclick=()=> modal.classList.add('hidden');
+  $('setSave').onclick=async ()=>{ set(S.cfg,{...get(S.cfg,{}), gh_pat:$('ghToken').value.trim()}); modal.classList.add('hidden'); try{ await ensureProfile(); alert('Saved & signed in ✓') }catch(e){ alert(e.message||String(e)) } };
 };
+
+// =====================================================================
+// STUDIO PRO — canvas editor (filters, crop/zoom, rotate, text, emoji)
+// =====================================================================
+const studio = {
+  open:false, index:null, img:null, imgBitmap:null,
+  zoom:1, rot:0, panX:0, panY:0,
+  bright:1, contrast:1, sat:1, hue:0, blur:0,
+  overlays:[], // [{type:'text'|'emoji'|'sticker', x,y,text?,font?,size?}]
+  pointers:new Map()
+};
+const can=$('studioCanvas'); const ctx=can.getContext('2d');
+function fitCanvas(){ const box=can.parentElement.getBoundingClientRect(); can.width=Math.floor(box.width); can.height=Math.floor(box.width*16/9); }
+window.addEventListener('resize', ()=>{ if(studio.open){ fitCanvas(); drawStudio() }});
+function resetStudioState(){
+  studio.zoom=1; studio.rot=0; studio.panX=0; studio.panY=0; studio.bright=1; studio.contrast=1; studio.sat=1; studio.hue=0; studio.blur=0; studio.overlays=[]; studio.pointers.clear();
+  ['stZoom','stRotate','stPanX','stPanY','stBright','stContrast','stSat','stHue','stBlur'].forEach(id=> $(id).value=$(id).defaultValue);
+}
+async function openStudioWithFile(idx){
+  const obj=momSelected[idx]; if(!obj || !obj.file || !obj.file.type.startsWith('image')) return alert('Pick an image to edit');
+  studio.index=idx; studio.open=true; $('studio').classList.remove('hidden');
+  fitCanvas(); resetStudioState();
+  studio.img = await createImageBitmap(obj.file);
+  studio.imgBitmap = studio.img;
+  drawStudio();
+}
+// pinch zoom / pan
+can.addEventListener('pointerdown', (e)=>{ if(!studio.open) return; can.setPointerCapture(e.pointerId); studio.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}); });
+can.addEventListener('pointerup', (e)=>{ studio.pointers.delete(e.pointerId) });
+can.addEventListener('pointercancel', (e)=>{ studio.pointers.delete(e.pointerId) });
+can.addEventListener('pointermove', (e)=>{
+  if(!studio.open || studio.pointers.size===0) return;
+  const prev=studio.pointers.get(e.pointerId); if(!prev) return;
+  const dx=e.clientX-prev.x, dy=e.clientY-prev.y; studio.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(studio.pointers.size===1){ studio.panX += dx; studio.panY += dy; $('stPanX').value=studio.panX; $('stPanY').value=studio.panY; drawStudio(); }
+  if(studio.pointers.size===2){
+    const pts=[...studio.pointers.values()];
+    const d=(a,b)=> Math.hypot(a.x-b.x, a.y-b.y);
+    // compute scale change
+    const [p1,p2]=pts; const before=d(p1,{x:p1.x-dx,y:p1.y-dy}); const after=d(p1,p2);
+    if(before>0){ const s=after/before; studio.zoom = clamp(studio.zoom*s, 0.5, 3); $('stZoom').value=studio.zoom; drawStudio(); }
+  }
+});
+['stZoom','stRotate','stPanX','stPanY','stBright','stContrast','stSat','stHue','stBlur'].forEach(id=>{
+  $(id).addEventListener('input', ()=>{
+    studio.zoom=+$('stZoom').value; studio.rot=+$('stRotate').value;
+    studio.panX=+$('stPanX').value; studio.panY=+$('stPanY').value;
+    studio.bright=+$('stBright').value; studio.contrast=+$('stContrast').value;
+    studio.sat=+$('stSat').value; studio.hue=+$('stHue').value; studio.blur=+$('stBlur').value;
+    drawStudio();
+  });
+});
+$('stAddText').onclick = ()=>{ studio.overlays.push({type:'text', x:can.width/2, y:can.height/2, text:'Your text', size:28, font:'600 28px sans-serif'}); drawStudio(); };
+$('stAddEmoji').onclick = ()=>{ studio.overlays.push({type:'emoji', x:can.width/2, y:can.height/2, text:'🎉', size:48}); drawStudio(); };
+$('stAddSticker').onclick = ()=>{ studio.overlays.push({type:'sticker', x:can.width/2, y:can.height/2, text:'NEW', size:32, font:'700 32px sans-serif'}); drawStudio(); };
+
+let dragIdx=-1;
+can.addEventListener('mousedown', (e)=>{
+  const rect=can.getBoundingClientRect(); const x=e.clientX-rect.left, y=e.clientY-rect.top;
+  dragIdx=studio.overlays.findIndex(o=> Math.hypot(o.x-x, o.y-y) < (o.size||30));
+});
+can.addEventListener('mousemove', (e)=>{
+  if(dragIdx<0) return;
+  const rect=can.getBoundingClientRect(); const x=e.clientX-rect.left, y=e.clientY-rect.top;
+  studio.overlays[dragIdx].x=x; studio.overlays[dragIdx].y=y; drawStudio();
+});
+window.addEventListener('mouseup', ()=> dragIdx=-1);
+can.addEventListener('dblclick', (e)=>{
+  const rect=can.getBoundingClientRect(); const x=e.clientX-rect.left, y=e.clientY-rect.top;
+  const i=studio.overlays.findIndex(o=> Math.hypot(o.x-x, o.y-y) < (o.size||30));
+  if(i>=0 && studio.overlays[i].type==='text'){ const t=prompt('Edit text', studio.overlays[i].text||''); if(t!=null){ studio.overlays[i].text=t; drawStudio() } }
+});
+window.addEventListener('keydown', (e)=>{ if(e.key==='Delete' && dragIdx>=0){ studio.overlays.splice(dragIdx,1); dragIdx=-1; drawStudio(); } });
+
+function drawStudio(){
+  if(!studio.imgBitmap) return;
+  ctx.save();
+  ctx.clearRect(0,0,can.width,can.height);
+  ctx.filter = `brightness(${studio.bright}) contrast(${studio.contrast}) saturate(${studio.sat}) hue-rotate(${studio.hue}deg) blur(${studio.blur}px)`;
+  ctx.translate(can.width/2 + studio.panX, can.height/2 + studio.panY);
+  ctx.rotate(studio.rot * Math.PI/180);
+  const scale = studio.zoom;
+  const w = studio.imgBitmap.width * scale;
+  const h = studio.imgBitmap.height * scale;
+  ctx.drawImage(studio.imgBitmap, -w/2, -h/2, w, h);
+  ctx.restore();
+  // overlays
+  studio.overlays.forEach(o=>{
+    ctx.save();
+    ctx.font = o.font || `${o.size||32}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle='white'; ctx.strokeStyle='black'; ctx.lineWidth=4;
+    ctx.strokeText(o.text, o.x, o.y); ctx.fillText(o.text, o.x, o.y);
+    ctx.restore();
+  });
+}
+$('studioClose').onclick = ()=>{ $('studio').classList.add('hidden'); studio.open=false; };
+$('studioExport').onclick = async ()=>{
+  if(studio.index==null) return;
+  const blob = await new Promise(res=> can.toBlob(res, 'image/jpeg', 0.9));
+  const file = new File([blob], `edited_${Date.now()}.jpg`, { type:'image/jpeg' });
+  momSelected[studio.index] = { file, name:file.name, edited:true };
+  $('studio').classList.add('hidden'); studio.open=false; drawThumbs();
+};
+
+// ----------------- Stories / Moments list refreshers -----------------
+async function renderStories(){ // already defined above; ensure single def
+  const row=$('storiesRow'); if(!row) return; row.innerHTML='';
+  const all=await fetchJson(pagesURL('indexes/stories.json'))||[]; const active=all.filter(s=> !s.expires_at || new Date(s.expires_at).getTime()>Date.now());
+  if(!active.length){ row.innerHTML=`<div class="text-xs text-black/60">No active stories</div>`; return }
+  const map=await pmap(); active.forEach(s=> row.appendChild(storyChip(s, map[s.author])));
+}
+
+// ----------------- Initial -----------------
+function deb(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms) } }
+const safeRenderFeeds = deb(renderFeeds, 50); // guard any fast re-calls
+safeRenderFeeds();
 </script>
 </body>
 </html>
