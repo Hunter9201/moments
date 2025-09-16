@@ -3,10 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Moments Hub — Life Super‑App + Moments 2.0</title>
+  <title>Moments Hub — Life Super‑App + Moments Pro Studio</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <!-- ffmpeg.wasm UMD (for Export Beta) -->
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/umd/ffmpeg.js"></script>
   <style>
     html,body{height:100%}
     .radial-bg{background-image:radial-gradient(1200px 600px at 20% -10%, rgba(59,130,246,.10), transparent), radial-gradient(900px 400px at 90% -10%, rgba(217,70,239,.10), transparent)}
@@ -14,10 +16,18 @@
     .mom-feed{scroll-snap-type:y mandatory; overflow-y:auto; max-height:85vh}
     .mom-item{scroll-snap-align:center}
     .chip{font-size:.7rem;padding:.2rem .5rem;border-radius:999px;background:rgba(0,0,0,.08)}
-    .studio-range{accent-color:#0ea5e9}
-    .fx-badge{border:1px solid rgba(0,0,0,.1);padding:.2rem .5rem;border-radius:999px;font-size:.7rem}
     .story-bar{height:4px;background:rgba(255,255,255,.25);border-radius:2px;overflow:hidden}
-    .story-bar > div{height:100%;background:white;width:0}
+    .story-bar>div{height:100%;background:white;width:0}
+    /* Studio Pro */
+    .studio-stage{position:relative; width:100%; aspect-ratio:9/16; background:#111; overflow:hidden; touch-action:none}
+    .studio-media{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform-origin:center center}
+    .overlay-layer{position:absolute; inset:0; pointer-events:none}
+    .overlay-item{position:absolute; left:0; top:0; transform-origin:center center; pointer-events:auto}
+    .overlay-handle{position:absolute; right:-10px; bottom:-10px; width:20px; height:20px; border-radius:50%; background:rgba(255,255,255,.9); display:grid; place-items:center; font-size:12px; box-shadow:0 1px 4px rgba(0,0,0,.25)}
+    .overlay-remove{position:absolute; left:-10px; top:-10px; width:20px; height:20px; border-radius:50%; background:rgba(255,80,80,.95); color:#fff; display:grid; place-items:center; font-size:12px; box-shadow:0 1px 4px rgba(0,0,0,.25)}
+    .overlay-text{color:#fff; text-shadow:0 2px 6px rgba(0,0,0,.7); font-weight:700}
+    .emoji-picker button{font-size:22px}
+    .knob{accent-color:#0ea5e9}
   </style>
 </head>
 <body class="min-h-screen radial-bg text-slate-900">
@@ -50,14 +60,14 @@
   </header>
 
   <main class="mx-auto max-w-7xl px-4 py-6 space-y-8">
-    <!-- FEED (classic cards) -->
+    <!-- FEED -->
     <section id="tab-feed" class="space-y-6">
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" id="feed"></div>
     </section>
 
-    <!-- MOMENTS (Reels/Stories with 48h TTL + Studio) -->
+    <!-- MOMENTS -->
     <section id="tab-moments" class="hidden space-y-4">
-      <!-- Stories Row (grouped by author; 48h TTL) -->
+      <!-- Stories Row (48h TTL) -->
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="flex items-center justify-between">
           <div class="text-xs uppercase tracking-widest text-black/50">Stories (48h)</div>
@@ -67,44 +77,19 @@
       </div>
 
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <!-- Story Studio / Composer -->
+        <!-- Pro Studio (open in modal) -->
         <div class="order-2 lg:order-1 lg:col-span-1 rounded-2xl border border-black/10 bg-white/80 p-4 card h-max">
-          <div class="text-xs uppercase tracking-widest text-black/50">Story Studio</div>
+          <div class="text-xs uppercase tracking-widest text-black/50">Create a Moment</div>
           <div class="mt-3 grid gap-2 text-sm">
             <label class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 shadow-sm cursor-pointer">📤 Upload video/image<input id="momFile" type="file" accept="video/*,image/*" class="hidden"></label>
-            <div id="studioPreview" class="aspect-[9/16] w-full overflow-hidden rounded-xl bg-black/5 grid place-items-center text-xs text-black/50">No media yet</div>
-            <!-- Presets -->
-            <div class="flex flex-wrap gap-2">
-              <button class="fx-btn fx-badge" data-fxpreset="vivid">Vivid+</button>
-              <button class="fx-btn fx-badge" data-fxpreset="noir">Noir</button>
-              <button class="fx-btn fx-badge" data-fxpreset="film">Film</button>
-              <button class="fx-btn fx-badge" data-fxpreset="cyber">Cyberpunk</button>
-              <button class="fx-btn fx-badge" data-fxpreset="pastel">Pastel</button>
-              <button class="fx-btn fx-badge" data-fxpreset="sunset">Sunset</button>
-              <button class="fx-btn fx-badge" data-fxpreset="neon">Neon</button>
-            </div>
-            <!-- Sliders -->
-            <div class="grid grid-cols-2 gap-2">
-              <label class="text-[11px]">Bright <input id="fx-bright" type="range" min="50" max="150" value="100" class="studio-range w-full"></label>
-              <label class="text-[11px]">Contrast <input id="fx-contrast" type="range" min="50" max="150" value="100" class="studio-range w-full"></label>
-              <label class="text-[11px]">Saturate <input id="fx-sat" type="range" min="50" max="200" value="120" class="studio-range w-full"></label>
-              <label class="text-[11px]">Hue <input id="fx-hue" type="range" min="0" max="360" value="0" class="studio-range w-full"></label>
-              <label class="text-[11px]">Sepia <input id="fx-sepia" type="range" min="0" max="100" value="0" class="studio-range w-full"></label>
-              <label class="text-[11px]">Blur <input id="fx-blur" type="range" min="0" max="5" value="0" step="0.1" class="studio-range w-full"></label>
-            </div>
-            <!-- Overlay text -->
             <input id="momCaption" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Caption (what's happening?)" />
             <input id="momTags" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="#tags (comma separated)" />
             <input id="momLink" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Optional link (https://)" />
-            <div class="grid grid-cols-2 gap-2">
-              <input id="ov-text" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Overlay text" />
-              <select id="ov-pos" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2"><option value="bottom">Bottom</option><option value="top">Top</option><option value="center">Center</option></select>
-            </div>
             <div class="flex flex-wrap gap-2">
-              <button id="momPost" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Post to Moments</button>
-              <button id="resetFX" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Reset FX</button>
+              <button id="openStudioPro" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">🎨 Open Studio (Pro)</button>
+              <button id="momPost" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Post Moment (Quick)</button>
             </div>
-            <small class="text-black/50">Videos keep filters at playback (no export). Images are baked with filters & text before posting.</small>
+            <small class="text-black/50">Quick post = no edits. Pro Studio adds filters, stickers, music, crop & export.</small>
           </div>
         </div>
 
@@ -112,7 +97,7 @@
         <div class="order-1 lg:order-2 lg:col-span-2 rounded-2xl border border-black/10 bg-white/80 p-0 card">
           <div class="flex items-center justify-between p-4">
             <div class="text-xs uppercase tracking-widest text-black/50">For You</div>
-            <div class="flex items-center gap-2 text-xs"><span class="chip">Swipe / Scroll</span><span class="chip">Hold = Pause</span><span class="chip">Tap ←/→</span></div>
+            <div class="flex items-center gap-2 text-xs"><span class="chip">Swipe / Scroll</span><span class="chip">Hold = Pause</span><span class="chip">J/K nav</span></div>
           </div>
           <div id="momFeed" class="mom-feed px-3 pb-4 space-y-4"></div>
         </div>
@@ -242,49 +227,94 @@
   </main>
 
   <footer class="mt-6 grid place-items-center pb-16 text-center text-xs text-black/60">
-    <div>Private & local (no servers). Stories auto‑expire after 48h unless you delete them earlier. Videos use live filters; images bake filters before posting.</div>
+    <div>Private & local. Stories auto‑expire after 48h. Pro Studio lets you edit with filters, stickers, text, crop & export.</div>
   </footer>
 
-  <!-- Modal for feed/media & stories viewer -->
-  <div id="modal" class="hidden fixed inset-0 z-50 grid place-items-center bg-black/80 p-4"></div>
+  <!-- Modal root (stories, studio, media) -->
+  <div id="modal" class="hidden fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"></div>
 
   <script>
-    // ————————————————————————————————————————————————
+    // =====================================================================
     // STORAGE HELPERS
-    // ————————————————————————————————————————————————
-    const S = {
-      cfg: 'mh:cfg', chat: 'mh:chat', todos: 'mh:todos', notes: 'mh:notes',
-      pay: 'mh:pay', vid: 'mh:vid', aud: 'mh:aud',
-      moments: 'mh:moments', stories: 'mh:stories'
-    }
+    // =====================================================================
+    const S = { cfg:'mh:cfg', chat:'mh:chat', todos:'mh:todos', notes:'mh:notes', pay:'mh:pay', vid:'mh:vid', aud:'mh:aud', moments:'mh:moments', stories:'mh:stories' }
     const get = (k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch{return d}}
     const set = (k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
     const byId = (id)=>document.getElementById(id)
     const randomId = ()=> Math.random().toString(36).slice(2,9)
 
-    // ————————————————————————————————————————————————
-    // NAV / TABS
-    // ————————————————————————————————————————————————
+    // =====================================================================
+    // GITHUB PAGES DATA ENFORCEMENT (hunter9201/momentshub-data)
+    // =====================================================================
+    const GH = { owner:'hunter9201', repo:'momentshub-data', branch:'main', pagesBase:'https://hunter9201.github.io/momentshub-data' }
+    function getGhToken(){ return (get(S.cfg,{}).gh_pat||'').trim() }
+    function sanitizeName(n){ return (n||'upload').replace(/[^a-z0-9._-]/gi,'_') }
+    function base64FromArrayBuffer(buf){ let bin=''; const bytes=new Uint8Array(buf); const chunk=0x8000; for(let i=0;i<bytes.length;i+=chunk){ bin += String.fromCharCode(...bytes.subarray(i,i+chunk)); } return btoa(bin) }
+    async function ghUpload(file, folder){
+      const token = getGhToken();
+      if(!token) throw new Error('Connect GitHub: click Settings and paste a PAT with Contents: Read & Write for '+GH.owner+'/'+GH.repo)
+      const safeName = sanitizeName(file.name || (file.type?.startsWith('video/')?'video.mp4':file.type?.startsWith('image/')?'image.jpg':'file.bin'))
+      const path = `${folder}/${Date.now()}-${randomId()}-${safeName}`
+      const url = `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${path}`
+      const content = await file.arrayBuffer()
+      const body = { message:`Upload ${path}`, content: base64FromArrayBuffer(content), branch: GH.branch }
+      const res = await fetch(url, { method:'PUT', headers:{ 'Authorization':`token ${token}`, 'Accept':'application/vnd.github+json' }, body: JSON.stringify(body) })
+      if(!res.ok){ const t=await res.text(); throw new Error('GitHub upload failed: '+res.status+' '+t) }
+      return `${GH.pagesBase}/${path}`
+    }
+    async function ensureRepoUrlFromFile(file, folder){ return ghUpload(file, folder) }
+    function enforceRepoUrlOrThrow(u){ if(!u.startsWith(GH.pagesBase)) throw new Error('All media must be hosted under '+GH.pagesBase) }
+
+    // =====================================================================
+    // NAV
+    // =====================================================================
     const tabs = ['feed','moments','chat','ent','tour','pay','ess']
     function switchTab(t){ tabs.forEach(k=> byId(`tab-${k}`).classList.toggle('hidden', k!==t)) }
     document.querySelectorAll('.tab-btn').forEach(b=> b.addEventListener('click', ()=> switchTab(b.dataset.tab)))
 
-    // ————————————————————————————————————————————————
-    // FEED (Classic cards)
-    // ————————————————————————————————————————————————
+    // Settings modal: connect GitHub PAT for uploads
+    byId('openSettings').onclick = ()=>{
+      modal.classList.remove('hidden')
+      modal.innerHTML = `
+        <div class='max-w-md w-full rounded-2xl bg-white p-4'>
+          <div class='flex items-center justify-between mb-2'>
+            <div class='text-xs uppercase tracking-widest text-black/50'>Settings</div>
+            <button class='chip' id='setClose'>Close</button>
+          </div>
+          <div class='space-y-3 text-sm'>
+            <div>
+              <div class='font-semibold'>GitHub Data Repository</div>
+              <div class='text-black/60'>All uploads are enforced to <b>${GH.owner}/${GH.repo}</b> and served from <code>${GH.pagesBase}</code>.</div>
+            </div>
+            <label class='block'>Personal Access Token (PAT)
+              <input id='ghToken' type='password' class='mt-1 w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm' placeholder='ghp_… (Fine-grained; Contents: Read & Write)'>
+            </label>
+            <div class='text-xs text-black/60'>Stored locally in your browser. Never embedded in the site.</div>
+            <div class='flex justify-end gap-2'>
+              <button id='setSave' class='chip'>Save</button>
+            </div>
+          </div>
+        </div>`
+      byId('ghToken').value = (get(S.cfg,{}).gh_pat||'')
+      byId('setClose').onclick = ()=> modal.classList.add('hidden')
+      byId('setSave').onclick = ()=>{ set(S.cfg,{...get(S.cfg,{}), gh_pat: byId('ghToken').value.trim()}); modal.classList.add('hidden'); alert('Saved GitHub token ✓') }
+    }
+
+    // =====================================================================
+    // FEED (sample content)
+    // =====================================================================
     const items = [
-      { id: 'orji-laundry-hack', brand: 'Orji Supplies Laundry', tag: 'Hacks', kind: 'video', title: 'Smart Laundry Hack: 3 steps for brighter whites', subtitle: 'A 20-second mini-show', thumb: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?q=80&w=1600&auto=format&fit=crop', src: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4', actionText: 'Try the trick', href: 'https://orjisupplies.store/' },
-      { id: 'flair-car-showcase', brand: 'Flair Car Accessories', tag: 'Showcase', kind: 'video', title: 'Before/After: 15s car interior glow-up', subtitle: 'Tap to reveal the setup', thumb: 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1600&auto=format&fit=crop', src: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', actionText: 'See the setup', href: 'https://example.com/flair' },
-      { id: 'kibiina-mini', brand: 'Kibiina – Savings & Loans', tag: 'Stories', kind: 'image', title: 'How 20 members grew a fund in 90 days', subtitle: 'Swipe the snapshots', thumb: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?q=80&w=1600&auto=format&fit=crop', src: 'https://images.unsplash.com/photo-1549421263-3f9d1a6b8798?q=80&w=2400&auto=format&fit=crop', actionText: 'Join the circle', href: 'https://example.com/kibiina' },
-      { id: 'lionhunter-class', brand: 'Lion Hunter (LDC Hub)', tag: 'Lessons', kind: 'video', title: '60s Case Capsule: Jaffer Brothers v Bagalaliwo', subtitle: 'Tap for the crisp summary', thumb: 'https://images.unsplash.com/photo-1555375771-14b5b4b4688b?q=80&w=1600&auto=format&fit=crop', src: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', actionText: 'Explore notes', href: 'https://ldclionhunter.com/' }
+      { id:'orji-laundry-hack', brand:'Orji Supplies Laundry', tag:'Hacks', kind:'video', title:'Smart Laundry Hack: 3 steps for brighter whites', subtitle:'A 20-second mini-show', thumb:'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?q=80&w=1600&auto=format&fit=crop', src:'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4', actionText:'Try the trick', href:'https://orjisupplies.store/' },
+      { id:'flair-car-showcase', brand:'Flair Car Accessories', tag:'Showcase', kind:'video', title:'Before/After: 15s car interior glow-up', subtitle:'Tap to reveal the setup', thumb:'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1600&auto=format&fit=crop', src:'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', actionText:'See the setup', href:'#' },
+      { id:'kibiina-mini', brand:'Kibiina – Savings & Loans', tag:'Stories', kind:'image', title:'How 20 members grew a fund in 90 days', subtitle:'Swipe the snapshots', thumb:'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?q=80&w=1600&auto=format&fit=crop', src:'https://images.unsplash.com/photo-1549421263-3f9d1a6b8798?q=80&w=2400&auto=format&fit=crop', actionText:'Join the circle', href:'#' },
+      { id:'lionhunter-class', brand:'Lion Hunter (LDC Hub)', tag:'Lessons', kind:'video', title:'60s Case Capsule: Jaffer Brothers v Bagalaliwo', subtitle:'Tap for the crisp summary', thumb:'https://images.unsplash.com/photo-1555375771-14b5b4b4688b?q=80&w=1600&auto=format&fit=crop', src:'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', actionText:'Explore notes', href:'#' }
     ]
-    const feed = byId('feed');
-    const modal = byId('modal');
+    const feed = byId('feed'), modal = byId('modal')
 
     function renderCard(item){
-      const card = document.createElement('div');
-      card.className = 'group relative overflow-hidden rounded-2xl border bg-white shadow p-3';
-      card.innerHTML = `
+      const el = document.createElement('div')
+      el.className='group relative overflow-hidden rounded-2xl border bg-white shadow p-3'
+      el.innerHTML = `
         <div class="flex gap-3">
           <div class="w-36 shrink-0 overflow-hidden rounded-xl">
             ${item.kind==='video' ? `<video class='h-24 w-full object-cover' src='${item.src}' poster='${item.thumb}' muted loop playsinline></video>` : `<img class='h-24 w-full object-cover' src='${item.thumb}' alt='${item.title}'/>`}
@@ -301,12 +331,13 @@
               <a href="${item.href}" target="_blank" class="rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm font-semibold shadow-sm">${item.actionText}</a>
             </div>
           </div>
-        </div>`;
-      feed.appendChild(card);
+        </div>`
+      feed.appendChild(el)
     }
+    items.forEach(renderCard)
 
     function openModalItem(item){
-      modal.classList.remove('hidden');
+      modal.classList.remove('hidden')
       modal.innerHTML = `
         <div class="max-w-2xl rounded-2xl bg-white p-4 shadow-lg">
           <div class="mb-3 flex justify-between">
@@ -320,277 +351,154 @@
         </div>`
     }
 
-    items.forEach(renderCard)
     document.addEventListener('click', (e)=>{
-      const openBtn = e.target.closest('[data-open]');
-      if(openBtn){ const it = items.find(x=>x.id===openBtn.dataset.open); if(it) openModalItem(it) }
-      const addBtn = e.target.closest('[data-add-moment]');
-      if(addBtn){ const it = items.find(x=>x.id===addBtn.dataset.addMoment); if(it){ addMoment({kind:it.kind, src:it.src, thumb:it.thumb, caption:it.title, tags:[it.tag], link:it.href}) } }
+      const o=e.target.closest('[data-open]'); if(o){ const it=items.find(x=>x.id===o.dataset.open); if(it) openModalItem(it) }
+      const a=e.target.closest('[data-add-moment]'); if(a){ const it=items.find(x=>x.id===a.dataset.addMoment); if(it) addMoment({kind:it.kind, src:it.src, thumb:it.thumb, caption:it.title, tags:[it.tag], link:it.href}) }
     })
 
-    // Feed + Moments search
+    // Capture-phase handler to enforce repo uploads for "Add to Moments" buttons
+    document.addEventListener('click', async (e)=>{
+      const a=e.target.closest('[data-add-moment]');
+      if(a){ e.preventDefault(); e.stopImmediatePropagation();
+        const it=items.find(x=>x.id===a.dataset.addMoment); if(!it) return;
+        try{
+          if(it.src.startsWith(GH.pagesBase)){
+            addMoment({kind:it.kind, src:it.src, thumb:it.thumb, caption:it.title, tags:[it.tag], link:it.href})
+          }else{
+            const resp = await fetch(it.src, {mode:'cors'}).catch(()=>null)
+            if(!resp||!resp.ok){ alert('This media cannot be imported directly due to cross‑origin restrictions. Please download it, then upload via the composer.'); return }
+            const blob = await resp.blob()
+            const file = new File([blob], sanitizeName(it.title||'import') + (it.kind==='video'?'.mp4':'.jpg'), { type: blob.type || (it.kind==='video'?'video/mp4':'image/jpeg') })
+            const url = await ensureRepoUrlFromFile(file, it.kind==='video'?'videos':'images')
+            addMoment({kind:it.kind, src:url, thumb:it.thumb, caption:it.title, tags:[it.tag], link:it.href})
+          }
+        }catch(err){ console.error(err); alert(String(err.message||err)) }
+      }
+    }, true)
+
     byId('search').addEventListener('input', (e)=>{
-      const q = e.target.value.toLowerCase().trim()
+      const q=e.target.value.toLowerCase().trim()
       Array.from(feed.children).forEach(c=> c.style.display = c.textContent.toLowerCase().includes(q) ? '' : 'none')
       Array.from(byId('momFeed').children).forEach(c=> c.style.display = c.dataset.searchable?.includes(q) ? '' : 'none')
     })
 
-    // ————————————————————————————————————————————————
-    // MOMENTS — Stories (48h TTL), Studio (filters), Feed
-    // ————————————————————————————————————————————————
-    const STORY_TTL = 48*60*60*1000
-    const MOM_KEY = S.moments
-    const STO_KEY = S.stories
+    // =====================================================================
+    // MOMENTS (Feed + Stories 48h)
+    // =====================================================================
+    const MOM_KEY=S.moments, STO_KEY=S.stories, STORY_TTL=48*60*60*1000
 
-    // Seed initial data once
+    // Seed once
     ;(()=>{
-      if(get(MOM_KEY,null)===null){
-        set(MOM_KEY,[
-          {id:randomId(), kind:'video', src:items[0].src, thumb:items[0].thumb, caption:'Laundry hack in 20s', tags:['Hacks','Laundry'], author:'Orji', created:Date.now(), likes:12, liked:false, comments:[], fx:{b:100,c:100,s:120,h:0,sp:0,bl:0}},
-          {id:randomId(), kind:'video', src:items[1].src, thumb:items[1].thumb, caption:'Car glow‑up', tags:['Showcase','Auto'], author:'Flair', created:Date.now(), likes:5, liked:false, comments:[], fx:{b:100,c:110,s:130,h:0,sp:0,bl:0}},
-          {id:randomId(), kind:'image', src:items[2].src, thumb:items[2].thumb, caption:'Savings circle wins', tags:['Kibiina','Stories'], author:'Kibiina', created:Date.now(), likes:8, liked:false, comments:[], fx:{b:105,c:105,s:115,h:12,sp:10,bl:0}}
-        ])
-      }
-      if(get(STO_KEY,null)===null){
-        set(STO_KEY,[
-          {id:randomId(), kind:'image', src:items[2].thumb, thumb:items[2].thumb, caption:'Goal reached! 🎉', author:'Kibiina', created:Date.now()-1000*60*30, duration:7, fx:{b:105,c:105,s:120,h:0,sp:0,bl:0}},
-          {id:randomId(), kind:'image', src:items[3].thumb, thumb:items[3].thumb, caption:'Case notes drop', author:'Lion Hunter', created:Date.now()-1000*60*60, duration:7, fx:{b:100,c:110,s:120,h:0,sp:0,bl:0}}
-        ])
-      }
+      if(get(MOM_KEY,null)===null){ set(MOM_KEY,[
+        {id:randomId(), kind:'video', src:items[0].src, thumb:items[0].thumb, caption:'Laundry hack in 20s', tags:['Hacks','Laundry'], author:'Orji', created:Date.now(), likes:12, liked:false, comments:[], fx:{b:100,c:100,s:120,h:0,sp:0,bl:0}},
+        {id:randomId(), kind:'video', src:items[1].src, thumb:items[1].thumb, caption:'Car glow‑up', tags:['Showcase','Auto'], author:'Flair', created:Date.now(), likes:5, liked:false, comments:[], fx:{b:100,c:110,s:130,h:0,sp:0,bl:0}},
+        {id:randomId(), kind:'image', src:items[2].src, thumb:items[2].thumb, caption:'Savings circle wins', tags:['Kibiina','Stories'], author:'Kibiina', created:Date.now(), likes:8, liked:false, comments:[], fx:{b:105,c:105,s:115,h:12,sp:10,bl:0}}
+      ]) }
+      if(get(STO_KEY,null)===null){ set(STO_KEY,[
+        {id:randomId(), kind:'image', src:items[2].thumb, thumb:items[2].thumb, caption:'Goal reached! 🎉', author:'Kibiina', created:Date.now()-1000*60*30, duration:7, fx:{b:105,c:105,s:120,h:0,sp:0,bl:0}},
+        {id:randomId(), kind:'image', src:items[3].thumb, thumb:items[3].thumb, caption:'Case notes drop', author:'Lion Hunter', created:Date.now()-1000*60*60, duration:7, fx:{b:100,c:110,s:120,h:0,sp:0,bl:0}}
+      ]) }
     })()
 
-    function isExpired(st){ return (Date.now() - (st.created||0)) > STORY_TTL }
+    function isExpired(st){ return (Date.now()-(st.created||0))>STORY_TTL }
     function purgeExpiredStories(){ const list=get(STO_KEY,[]).filter(s=>!isExpired(s)); set(STO_KEY,list) }
 
-    // Studio state
-    const studio = { blobUrl:'', isVideo:false, fx:{b:100,c:100,s:120,h:0,sp:0,bl:0}, overlay:{text:'', pos:'bottom'} }
-    const studioPrev = byId('studioPreview')
-
-    function fxToCss(fx){ return `brightness(${fx.b||100}%) contrast(${fx.c||100}%) saturate(${fx.s||120}%) hue-rotate(${fx.h||0}deg) sepia(${fx.sp||0}%) blur(${fx.bl||0}px)` }
-
-    function applyStudioPreview(){
-      if(!studio.blobUrl){ studioPrev.innerHTML='No media yet'; return }
-      studioPrev.innerHTML=''
-      const overlay = document.createElement('div'); overlay.className='absolute inset-0 pointer-events-none flex'
-      overlay.style.alignItems = studio.overlay.pos==='top'? 'flex-start' : studio.overlay.pos==='center'? 'center' : 'flex-end'
-      overlay.innerHTML = `<div class='w-full p-3 text-white text-center text-sm' style='text-shadow:0 2px 6px rgba(0,0,0,.7)'>${studio.overlay.text||''}</div>`
-      if(studio.isVideo){
-        const v=document.createElement('video'); v.src=studio.blobUrl; v.autoplay=true; v.loop=true; v.muted=true; v.playsInline=true; v.className='h-full w-full object-cover relative'; v.style.filter = fxToCss(studio.fx); studioPrev.appendChild(v); studioPrev.appendChild(overlay)
-      } else {
-        const img=document.createElement('img'); img.src=studio.blobUrl; img.className='h-full w-full object-cover relative'; img.style.filter = fxToCss(studio.fx); studioPrev.appendChild(img); studioPrev.appendChild(overlay)
-      }
+    function addMoment({kind, src, thumb='', caption='', tags=[], link='', fx=null, overlays=[], audio=null, crop=null}){
+      const list=get(MOM_KEY,[])
+      list.unshift({ id:randomId(), kind, src, thumb, caption, tags, link, author:'You', created:Date.now(), likes:0, liked:false, comments:[], fx, overlays, audio, crop })
+      set(MOM_KEY,list); renderMoments(); alert('Posted to Moments ✓')
     }
 
-    // Presets
-    const PRESETS = {
-      vivid:{b:110,c:115,s:150,h:0,sp:0,bl:0}, noir:{b:105,c:130,s:0,h:0,sp:0,bl:0}, film:{b:102,c:108,s:115,h:12,sp:20,bl:0.2}, cyber:{b:105,c:125,s:170,h:220,sp:0,bl:0.4}, pastel:{b:110,c:95,s:90,h:10,sp:0,bl:0.6}, sunset:{b:108,c:110,s:140,h:20,sp:10,bl:0}, neon:{b:105,c:140,s:180,h:300,sp:0,bl:0.2}
+    // Quick post (no edit)
+    let momFileBlobUrl=''
+    byId('momFile').addEventListener('change', e=>{ const f=e.target.files[0]; if(!f) return; if(momFileBlobUrl) URL.revokeObjectURL(momFileBlobUrl); momFileBlobUrl=URL.createObjectURL(f); byId('momCaption').focus() })
+    byId('momPost').onclick=async ()=>{
+      const f = byId('momFile').files[0]
+      if(!f) return alert('Upload a video or image first')
+      const kind = (f.type||'').startsWith('video')?'video':'image'
+      const caption=byId('momCaption').value.trim()
+      const tags=byId('momTags').value.split(',').map(s=>s.trim().replace(/^#/, '')).filter(Boolean)
+      const link=byId('momLink').value.trim()
+      try{
+        const folder = kind==='video' ? 'videos' : 'images'
+        const url = await ensureRepoUrlFromFile(f, folder)
+        addMoment({kind, src:url, caption, tags, link})
+        byId('momCaption').value=''; byId('momTags').value=''; byId('momLink').value=''; byId('momFile').value=''; momFileBlobUrl=''
+      }catch(err){ alert(String(err.message||err)) }
     }
 
-    document.querySelectorAll('.fx-btn').forEach(b=> b.onclick = ()=>{ studio.fx = {...studio.fx, ...PRESETS[b.dataset.fxpreset]}; syncSlidersFromFx(); applyStudioPreview() })
-    function syncSlidersFromFx(){ byId('fx-bright').value=studio.fx.b; byId('fx-contrast').value=studio.fx.c; byId('fx-sat').value=studio.fx.s; byId('fx-hue').value=studio.fx.h; byId('fx-sepia').value=studio.fx.sp; byId('fx-blur').value=studio.fx.bl }
-    function syncFxFromSliders(){ studio.fx.b=+byId('fx-bright').value; studio.fx.c=+byId('fx-contrast').value; studio.fx.s=+byId('fx-sat').value; studio.fx.h=+byId('fx-hue').value; studio.fx.sp=+byId('fx-sepia').value; studio.fx.bl=+byId('fx-blur').value }
-    ;['fx-bright','fx-contrast','fx-sat','fx-hue','fx-sepia','fx-blur'].forEach(id=> byId(id).addEventListener('input', ()=>{ syncFxFromSliders(); applyStudioPreview() }))
-    byId('resetFX').onclick = ()=>{ studio.fx={b:100,c:100,s:120,h:0,sp:0,bl:0}; syncSlidersFromFx(); applyStudioPreview() }
-
-    // Upload handlers
-    byId('momFile').addEventListener('change', (e)=>{
+    // STORIES add (48h TTL)
+    let storyBlobUrl=''
+    byId('storyFile').addEventListener('change', async (e)=>{
       const f=e.target.files[0]; if(!f) return
-      if(studio.blobUrl) URL.revokeObjectURL(studio.blobUrl)
-      studio.isVideo = f.type.startsWith('video')
-      studio.blobUrl = URL.createObjectURL(f)
-      applyStudioPreview()
+      try{
+        const url = await ensureRepoUrlFromFile(f, f.type.startsWith('video')?'stories/video':'stories/image')
+        const list=get(STO_KEY,[])
+        list.unshift({id:randomId(), kind:f.type.startsWith('video')?'video':'image', src:url, thumb:url, caption:'New story', author:'You', created:Date.now(), duration:7, fx:{b:100,c:110,s:120,h:0,sp:0,bl:0}})
+        set(STO_KEY,list); purgeExpiredStories(); renderStories(); alert('Story added ✓ (expires in 48h)')
+      }catch(err){ alert(String(err.message||err)) }
     })
 
-    // Post to Moments (image baked, video references blob + fx at playback)
-    byId('momPost').onclick = async ()=>{
-      if(!studio.blobUrl) return alert('Upload a video or image first')
-      const caption = byId('momCaption').value.trim()
-      const tags = byId('momTags').value.split(',').map(s=>s.trim().replace(/^#/, '')).filter(Boolean)
-      const link = byId('momLink').value.trim()
-      studio.overlay.text = byId('ov-text').value.trim(); studio.overlay.pos = byId('ov-pos').value
-
-      let src = studio.blobUrl; let thumb = studio.blobUrl; let fx = {...studio.fx}
-
-      if(!studio.isVideo){
-        // Bake filters + overlay into image via canvas
-        const img = new Image(); img.crossOrigin='anonymous'; img.src = studio.blobUrl
-        await img.decode().catch(()=>{})
-        const W=720, H=1280; const c=document.createElement('canvas'); c.width=W; c.height=H; const ctx=c.getContext('2d')
-        // Draw with filters
-        ctx.filter = fxToCss(fx)
-        // cover fit
-        const r=Math.max(W/img.width, H/img.height); const w=img.width*r, h=img.height*r; const x=(W-w)/2, y=(H-h)/2
-        ctx.drawImage(img, x,y,w,h)
-        // overlay text
-        if(studio.overlay.text){ ctx.save(); ctx.filter='none'; ctx.font='bold 36px system-ui, sans-serif'; ctx.fillStyle='rgba(255,255,255,.95)'; ctx.textAlign='center'; ctx.shadowColor='rgba(0,0,0,.6)'; ctx.shadowBlur=12; const yy = studio.overlay.pos==='top'? 60 : studio.overlay.pos==='center'? H/2 : H-40; ctx.fillText(studio.overlay.text, W/2, yy); ctx.restore() }
-        src = c.toDataURL('image/jpeg', .9); thumb = src; fx = null // baked
-        URL.revokeObjectURL(studio.blobUrl)
-      }
-
-      addMoment({kind: studio.isVideo?'video':'image', src, thumb, caption, tags, link, fx})
-      // reset
-      studio.blobUrl=''; byId('momFile').value=''; byId('momCaption').value=''; byId('momTags').value=''; byId('momLink').value=''; byId('ov-text').value=''; byId('ov-pos').value='bottom'; studio.fx={b:100,c:100,s:120,h:0,sp:0,bl:0}; syncSlidersFromFx(); applyStudioPreview()
-    }
-
-    function addMoment({kind, src, thumb='', caption='', tags=[], link='', fx=null}){
-      const list = get(MOM_KEY,[])
-      list.unshift({ id:randomId(), kind, src, thumb, caption, tags, link, author:'You', created:Date.now(), likes:0, liked:false, comments:[], fx })
-      set(MOM_KEY,list); renderMoments()
-      alert('Posted to Moments ✓')
-    }
-
-    // STORIES — Add (48h TTL) & render grouped by author
-    let storyBlobUrl = ''
-    byId('storyFile').addEventListener('change', (e)=>{
-      const f=e.target.files[0]; if(!f) return
-      if(storyBlobUrl) URL.revokeObjectURL(storyBlobUrl)
-      storyBlobUrl = URL.createObjectURL(f)
-      const list = get(STO_KEY,[])
-      list.unshift({id:randomId(), kind:f.type.startsWith('video')?'video':'image', src:storyBlobUrl, thumb:storyBlobUrl, caption:'New story', author:'You', created:Date.now(), duration:7, fx:{...studio.fx}})
-      set(STO_KEY,list); purgeExpiredStories(); renderStories(); alert('Story added ✓ (expires in 48h)')
-    })
-
-    function groupByAuthor(stories){
-      const map = new Map();
-      stories.forEach(s=>{ if(!map.has(s.author)) map.set(s.author, []); map.get(s.author).push(s) })
-      return Array.from(map.entries()).map(([author, list])=>({author, list}))
-    }
+    function groupByAuthor(stories){ const map=new Map(); stories.forEach(s=>{ if(!map.has(s.author)) map.set(s.author, []); map.get(s.author).push(s) }); return Array.from(map.entries()).map(([author, list])=>({author, list})) }
 
     function renderStories(){
-      purgeExpiredStories()
-      const row = byId('momStoriesRow'); row.innerHTML=''
-      const stories = get(STO_KEY,[]).filter(s=>!isExpired(s))
-      const groups = groupByAuthor(stories)
-      groups.forEach((g, gi)=>{
-        const cover = g.list[0]?.thumb || ''
-        const b = document.createElement('button'); b.className='flex flex-col items-center gap-1'
-        b.innerHTML = `<span class='relative block h-16 w-16 rounded-full border-2 ${g.author==='You'?'border-emerald-400':'border-fuchsia-400'} overflow-hidden'>${cover? `<img src='${cover}' class='h-full w-full object-cover'>`:''}${g.author==='You'?"<span class='absolute -bottom-1 -right-1 h-5 w-5 grid place-items-center rounded-full bg-emerald-500 text-white text-[12px] border-2 border-white'>✓</span>":''}</span><span class='text-[11px] max-w-20 truncate'>${g.author}</span>`
-        b.onclick = ()=> openStoryViewer(groups, gi, 0)
-        row.appendChild(b)
+      purgeExpiredStories(); const row=byId('momStoriesRow'); row.innerHTML=''
+      const stories=get(STO_KEY,[]).filter(s=>!isExpired(s)); const groups=groupByAuthor(stories)
+      groups.forEach((g,gi)=>{
+        const cover=g.list[0]?.thumb||''; const b=document.createElement('button'); b.className='flex flex-col items-center gap-1'
+        b.innerHTML=`<span class='relative block h-16 w-16 rounded-full border-2 ${g.author==='You'?'border-emerald-400':'border-fuchsia-400'} overflow-hidden'>${cover?`<img src='${cover}' class='h-full w-full object-cover'>`:''}${g.author==='You'?"<span class='absolute -bottom-1 -right-1 h-5 w-5 grid place-items-center rounded-full bg-emerald-500 text-white text-[12px] border-2 border-white'>✓</span>":''}</span><span class='text-[11px] max-w-20 truncate'>${g.author}</span>`
+        b.onclick=()=>openStoryViewer(groups,gi,0); row.appendChild(b)
       })
     }
 
-    // WhatsApp‑like Story Viewer (tap left/right, hold to pause, auto advance, 48h TTL)
+    // WhatsApp-like stories viewer
     function openStoryViewer(groups, groupIndex, storyIndex){
-      modal.classList.remove('hidden')
-      const wrap = document.createElement('div')
-      wrap.className = 'w-full max-w-sm rounded-2xl bg-black text-white overflow-hidden relative'
-      modal.innerHTML = ''
-      modal.appendChild(wrap)
-
-      const header = document.createElement('div')
-      header.className='p-3 flex items-center justify-between text-sm'
-      const left = document.createElement('div')
-      const right = document.createElement('div')
-      header.appendChild(left); header.appendChild(right)
-      wrap.appendChild(header)
-
-      const bars = document.createElement('div')
-      bars.className='flex gap-1 px-3'
-      wrap.insertBefore(bars, header)
-
-      const stage = document.createElement('div')
-      stage.className='aspect-[9/16] w-full bg-black relative'
-      wrap.appendChild(stage)
-
-      const controls = document.createElement('div')
-      controls.className='absolute inset-0 grid grid-cols-2'
-      wrap.appendChild(controls)
-
-      const btnClose = document.createElement('button'); btnClose.textContent='✕'; btnClose.className='absolute right-2 top-2 chip bg-white/10'; btnClose.onclick = ()=> modal.classList.add('hidden')
-      wrap.appendChild(btnClose)
-
-      let paused=false, timer=null, startTs=0, curVideo=null
+      modal.classList.remove('hidden'); let curVideo=null, paused=false
+      const wrap=document.createElement('div'); wrap.className='w-full max-w-sm rounded-2xl bg-black text-white overflow-hidden relative'
+      modal.innerHTML=''; modal.appendChild(wrap)
+      const bars=document.createElement('div'); bars.className='flex gap-1 px-3 pt-3'; wrap.appendChild(bars)
+      const header=document.createElement('div'); header.className='p-3 flex items-center justify-between text-sm'; wrap.appendChild(header)
+      const stage=document.createElement('div'); stage.className='aspect-[9/16] w-full bg-black relative'; wrap.appendChild(stage)
+      const controls=document.createElement('div'); controls.className='absolute inset-0 grid grid-cols-2'; wrap.appendChild(controls)
+      const btnClose=document.createElement('button'); btnClose.textContent='✕'; btnClose.className='absolute right-2 top-2 chip bg-white/10'; btnClose.onclick=()=>modal.classList.add('hidden'); wrap.appendChild(btnClose)
 
       function current(){ return groups[groupIndex].list[storyIndex] }
-      function updateBars(){
-        bars.innerHTML=''
-        const total = groups[groupIndex].list.length
-        for(let i=0;i<total;i++){
-          const seg = document.createElement('div'); seg.className='story-bar flex-1'; seg.innerHTML='<div></div>'; bars.appendChild(seg)
-        }
-      }
+      function updateBars(){ bars.innerHTML=''; const total=groups[groupIndex].list.length; for(let i=0;i<total;i++){ const seg=document.createElement('div'); seg.className='story-bar flex-1'; seg.innerHTML='<div></div>'; bars.appendChild(seg) } }
 
-      function render(){
-        const st = current(); if(!st || isExpired(st)){ next(); return }
-        stage.innerHTML=''; left.textContent = `${groups[groupIndex].author}`; right.textContent = new Date(st.created).toLocaleTimeString()
-        updateBars()
-        const segs = bars.querySelectorAll('.story-bar > div')
-        segs.forEach((d,i)=>{ d.style.width = i<storyIndex? '100%' : i===storyIndex? '0%' : '0' })
+      let startTs=0; function runProgress(totalMs){ const seg=bars.querySelectorAll('.story-bar>div')[storyIndex]; const tick=()=>{ if(paused){ requestAnimationFrame(tick); return } let p=0; if(curVideo){ p = curVideo.duration? (curVideo.currentTime/curVideo.duration) : 0 } else { p=Math.min(1,(performance.now()-startTs)/totalMs) } seg.style.width=(p*100)+'%'; if(p>=1){ next() } else requestAnimationFrame(tick) }; requestAnimationFrame(tick) }
 
-        // Media
-        if(st.kind==='video'){
-          const v=document.createElement('video'); curVideo=v; v.src=st.src; v.autoplay=true; v.muted=true; v.playsInline=true; v.className='absolute inset-0 h-full w-full object-cover';
-          v.style.filter = st.fx? fxToCss(st.fx) : ''
-          stage.appendChild(v)
-          // overlay caption
-          if(st.caption){ const cap=document.createElement('div'); cap.className='absolute inset-x-0 bottom-0 p-3 text-center'; cap.style.textShadow='0 2px 6px rgba(0,0,0,.7)'; cap.innerHTML=`<div class='text-sm'>${st.caption}</div>`; stage.appendChild(cap) }
-          v.onloadedmetadata = ()=>{ startTs=performance.now(); runProgress(v.duration*1000) }
-        } else {
-          curVideo=null
-          const img=document.createElement('img'); img.src=st.src; img.className='absolute inset-0 h-full w-full object-cover'; img.style.filter = st.fx? fxToCss(st.fx):''; stage.appendChild(img)
-          if(st.caption){ const cap=document.createElement('div'); cap.className='absolute inset-x-0 bottom-0 p-3 text-center'; cap.style.textShadow='0 2px 6px rgba(0,0,0,.7)'; cap.innerHTML=`<div class='text-sm'>${st.caption}</div>`; stage.appendChild(cap) }
-          startTs=performance.now(); runProgress((st.duration||7)*1000)
-        }
+      function render(){ const st=current(); if(!st) return; if((Date.now()-(st.created||0))>STORY_TTL){ next(); return } stage.innerHTML=''; header.textContent = groups[groupIndex].author + (st.caption? ' — '+st.caption:''); updateBars(); const segs=bars.querySelectorAll('.story-bar>div'); segs.forEach((d,i)=>{ d.style.width = i<storyIndex? '100%' : i===storyIndex? '0%' : '0' })
+        if(st.kind==='video'){ const v=document.createElement('video'); curVideo=v; v.src=st.src; v.autoplay=true; v.muted=true; v.playsInline=true; v.className='absolute inset-0 h-full w-full object-cover'; if(st.fx) v.style.filter=fxToCss(st.fx); stage.appendChild(v); v.onloadedmetadata=()=>{ startTs=performance.now(); runProgress((st.duration||Math.min(8, v.duration||7))*1000) } }
+        else { curVideo=null; const img=document.createElement('img'); img.src=st.src; img.className='absolute inset-0 h-full w-full object-cover'; if(st.fx) img.style.filter=fxToCss(st.fx); stage.appendChild(img); startTs=performance.now(); runProgress((st.duration||7)*1000) }
       }
-
-      function runProgress(totalMs){
-        clearInterval(timer)
-        const seg = bars.querySelectorAll('.story-bar > div')[storyIndex]
-        startTs = performance.now()
-        const tick = ()=>{
-          if(paused){ requestAnimationFrame(tick); return }
-          let p=0
-          if(curVideo){ p = curVideo.duration? (curVideo.currentTime/curVideo.duration) : 0 }
-          else { p = Math.min(1, (performance.now()-startTs)/totalMs) }
-          seg.style.width = (p*100)+'%'
-          if(p>=1){ next(); return }
-          requestAnimationFrame(tick)
-        }
-        requestAnimationFrame(tick)
-      }
-
-      function next(){
-        const g = groups[groupIndex]
-        if(storyIndex < g.list.length-1){ storyIndex++; render() }
-        else if(groupIndex < groups.length-1){ groupIndex++; storyIndex=0; render() }
-        else { modal.classList.add('hidden') }
-      }
+      function next(){ const g=groups[groupIndex]; if(storyIndex<g.list.length-1){ storyIndex++; render() } else if(groupIndex<groups.length-1){ groupIndex++; storyIndex=0; render() } else { modal.classList.add('hidden') } }
       function prev(){ if(storyIndex>0){ storyIndex--; render() } else if(groupIndex>0){ groupIndex--; storyIndex=groups[groupIndex].list.length-1; render() } }
 
-      // Tap left/right to nav; hold to pause
-      const leftTap = document.createElement('div'); leftTap.className='h-full w-full'; const rightTap = document.createElement('div'); rightTap.className='h-full w-full'
-      controls.appendChild(leftTap); controls.appendChild(rightTap)
-      leftTap.addEventListener('click', ()=> prev())
-      rightTap.addEventListener('click', ()=> next())
+      const left=document.createElement('div'); const right=document.createElement('div'); left.className='h-full w-full'; right.className='h-full w-full'; controls.appendChild(left); controls.appendChild(right)
+      left.addEventListener('click', ()=>prev()); right.addEventListener('click', ()=>next())
       ;['mousedown','touchstart'].forEach(ev=> controls.addEventListener(ev, ()=>{ paused=true; if(curVideo) curVideo.pause() }))
       ;['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=> controls.addEventListener(ev, ()=>{ paused=false; if(curVideo) curVideo.play() }))
 
-      // Delete if it's your story
-      const del = document.createElement('button'); del.textContent='Delete'; del.className='absolute left-2 top-2 chip bg-white/10'
-      del.onclick = ()=>{
-        const st = current(); if(st && st.author==='You'){
-          const all = get(STO_KEY,[]).filter(s=> s.id!==st.id)
-          set(STO_KEY, all); // maintain others
-          // rebuild groups & reposition safely
-          const fresh = groupByAuthor(all)
-          if(!fresh.length){ modal.classList.add('hidden'); renderStories(); return }
-          groups = fresh; storyIndex=0; groupIndex=0; renderStories(); render()
-        } else { alert('Only the uploader can remove this story.') }
-      }
-      wrap.appendChild(del)
-
+      // Delete own story
+      const del=document.createElement('button'); del.textContent='Delete'; del.className='absolute left-2 top-2 chip bg-white/10'; del.onclick=()=>{ const st=current(); if(st && st.author==='You'){ const all=get(STO_KEY,[]).filter(s=>s.id!==st.id); set(STO_KEY,all); renderStories(); groups=groupByAuthor(all); groupIndex=0; storyIndex=0; if(!groups.length) modal.classList.add('hidden'); else render() } }; wrap.appendChild(del)
       render()
     }
 
+    function fxToCss(fx){ return `brightness(${fx?.b??100}%) contrast(${fx?.c??100}%) saturate(${fx?.s??120}%) hue-rotate(${fx?.h??0}deg) sepia(${fx?.sp??0}%) blur(${fx?.bl??0}px)` }
+
     function momentNode(m){
-      const wrap = document.createElement('div');
-      wrap.className = 'mom-item rounded-2xl border border-black/10 bg-black/90 text-white overflow-hidden relative';
-      wrap.dataset.searchable = `${m.caption||''} ${(m.tags||[]).join(' ')}`.toLowerCase()
+      const wrap=document.createElement('div'); wrap.className='mom-item rounded-2xl border border-black/10 bg-black/90 text-white overflow-hidden relative'; wrap.dataset.searchable=`${m.caption||''} ${(m.tags||[]).join(' ')}`.toLowerCase()
       const filterCss = m.fx? fxToCss(m.fx) : ''
+      const overlaysHtml = (m.overlays||[]).map(ov=>{
+        const t = `transform:translate(${ov.x}px,${ov.y}px) scale(${ov.scale||1}) rotate(${ov.rot||0}deg);`
+        if(ov.type==='text' || ov.type==='emoji') return `<div class='absolute' style="${t} left:0; top:0;">${ov.type==='text'?`<div class='overlay-text' style='font-size:${ov.size||28}px'>${ov.text||''}</div>`:`<div style='font-size:${ov.size||48}px'>${ov.text||'😎'}</div>`}</div>`
+        else return `<img src='${ov.src}' class='absolute' style='${t} left:0; top:0; width:${ov.w||96}px; height:auto;'>`
+      }).join('')
+
       wrap.innerHTML = `
         <div class='aspect-[9/16] w-full relative'>
           ${m.kind==='video' ? `<video class='mom-video absolute inset-0 h-full w-full object-cover' src='${m.src}' poster='${m.thumb||''}' playsinline muted loop style='filter:${filterCss}'></video>` : `<img class='absolute inset-0 h-full w-full object-cover' src='${m.src}' alt='' style='filter:${filterCss}'>`}
+          <div class='absolute inset-0 pointer-events-none'>${overlaysHtml}</div>
           <div class='absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 to-black/0'>
             <div class='text-sm font-semibold'>${m.author||'You'}</div>
             <div class='text-sm opacity-90'>${m.caption||''}</div>
@@ -600,6 +508,7 @@
             <button class='like-btn rounded-full bg-white/10 px-3 py-1 text-xs' data-like='${m.id}'>❤ ${m.likes||0}</button>
             <button class='comment-btn rounded-full bg-white/10 px-3 py-1 text-xs' data-cmt='${m.id}'>💬 ${m.comments?.length||0}</button>
             ${m.link? `<a class='rounded-full bg-white/10 px-3 py-1 text-xs' target='_blank' href='${m.link}'>🔗 Link</a>`:''}
+            ${m.kind==='video' ? `<button class='toggle-aud rounded-full bg-white/10 px-3 py-1 text-xs' data-aud='${m.id}'>🔈</button>`:''}
           </div>
         </div>
         <div class='p-3 bg-white text-slate-900'>
@@ -612,213 +521,272 @@
       return wrap
     }
 
-    function renderMoments(){
-      const host = byId('momFeed'); host.innerHTML=''
-      const list = get(MOM_KEY,[])
-      list.forEach(m=>{
-        const node = momentNode(m)
-        host.appendChild(node)
-        const cwrap = node.querySelector(`#cmt-${m.id}`)
-        ;(m.comments||[]).forEach(c=>{ const p=document.createElement('div'); p.innerHTML = `<span class='font-semibold'>${c.author||'User'}:</span> ${c.text}`; cwrap.appendChild(p) })
-      })
-      wireMomentEvents()
-      autoPlayVisible()
-    }
+    function renderMoments(){ const host=byId('momFeed'); host.innerHTML=''; const list=get(MOM_KEY,[]); list.forEach(m=>{ const node=momentNode(m); host.appendChild(node); const cwrap=node.querySelector(`#cmt-${m.id}`); (m.comments||[]).forEach(c=>{ const p=document.createElement('div'); p.innerHTML=`<span class='font-semibold'>${c.author||'User'}:</span> ${c.text}`; cwrap.appendChild(p) }) }); wireMomentEvents(); autoPlayVisible() }
 
     function wireMomentEvents(){
-      document.querySelectorAll('[data-like]').forEach(b=> b.onclick = ()=>{
-        const id=b.dataset.like; const list=get(MOM_KEY,[]); const m=list.find(x=>x.id===id); if(!m) return
-        m.liked=!m.liked; m.likes = (m.likes||0) + (m.liked? 1 : -1); set(MOM_KEY,list); b.textContent = `❤ ${m.likes}`
-      })
-      document.querySelectorAll('[data-send]').forEach(b=> b.onclick = ()=>{
-        const id=b.dataset.send; const list=get(MOM_KEY,[]); const m=list.find(x=>x.id===id); if(!m) return
-        const input = b.parentElement.querySelector('input'); const text=input.value.trim(); if(!text) return
-        m.comments = m.comments||[]; m.comments.push({id:randomId(), text, ts:Date.now(), author:'You'})
-        set(MOM_KEY,list); input.value=''
-        const cwrap = byId(`cmt-${id}`); const p=document.createElement('div'); p.innerHTML = `<span class='font-semibold'>You:</span> ${text}`; cwrap.appendChild(p)
-      })
+      document.querySelectorAll('[data-like]').forEach(b=> b.onclick=()=>{ const id=b.dataset.like; const list=get(MOM_KEY,[]); const m=list.find(x=>x.id===id); if(!m) return; m.liked=!m.liked; m.likes=(m.likes||0)+(m.liked?1:-1); set(MOM_KEY,list); b.textContent=`❤ ${m.likes}` })
+      document.querySelectorAll('[data-send]').forEach(b=> b.onclick=()=>{ const id=b.dataset.send; const list=get(MOM_KEY,[]); const m=list.find(x=>x.id===id); if(!m) return; const input=b.parentElement.querySelector('input'); const text=input.value.trim(); if(!text) return; m.comments=m.comments||[]; m.comments.push({id:randomId(), text, ts:Date.now(), author:'You'}); set(MOM_KEY,list); input.value=''; const cwrap=byId(`cmt-${id}`); const p=document.createElement('div'); p.innerHTML=`<span class='font-semibold'>You:</span> ${text}`; cwrap.appendChild(p) })
+      document.querySelectorAll('.toggle-aud').forEach(btn=> btn.onclick=()=>{ const id=btn.dataset.aud; const list=get(MOM_KEY,[]); const m=list.find(x=>x.id===id); if(!m) return; const card=btn.closest('.mom-item'); const vid=card.querySelector('video'); if(vid){ vid.muted = !vid.muted; if(m.audio?.musicUrl){ let aud=card.querySelector('audio'); if(!aud){ aud=document.createElement('audio'); aud.src=m.audio.musicUrl; aud.loop=true; aud.volume=(m.audio.musicVol??0.8); card.appendChild(aud) } if(vid.muted){ aud.pause() } else { aud.play(); vid.volume=(m.audio.videoVol??0.2) } } } })
     }
 
-    function autoPlayVisible(){
-      const vids = Array.from(document.querySelectorAll('.mom-video'))
-      if(!('IntersectionObserver' in window)) { vids.forEach(v=>{try{v.play()}catch{}}); return }
-      const obs = new IntersectionObserver((entries)=>{
-        entries.forEach(en=>{
-          const v=en.target; if(en.isIntersecting && en.intersectionRatio>0.6){ try{v.play()}catch{} } else { try{v.pause()}catch{} }
-        })
-      }, {threshold:[0,0.25,0.5,0.75,1]})
-      vids.forEach(v=> obs.observe(v))
-    }
+    function autoPlayVisible(){ const vids=Array.from(document.querySelectorAll('.mom-video')); if(!('IntersectionObserver' in window)){ vids.forEach(v=>{try{v.play()}catch{}}); return } const obs=new IntersectionObserver((entries)=>{ entries.forEach(en=>{ const v=en.target; if(en.isIntersecting && en.intersectionRatio>0.6){ try{v.play()}catch{} } else { try{v.pause()}catch{} } }) }, {threshold:[0,0.25,0.5,0.75,1]}); vids.forEach(v=> obs.observe(v)) }
 
-    // Initial paints
     renderStories(); renderMoments()
 
-    // ————————————————————————————————————————————————
+    // =====================================================================
     // COMMUNICATION
-    // ————————————————————————————————————————————————
-    const chatLog = byId('chatLog'), chatMsg = byId('chatMsg'), chatSend = byId('chatSend')
-    function renderChat(){
-      const msgs = get(S.chat,[])
-      chatLog.innerHTML = msgs.map(m=>`<div class='mb-2 ${m.me?'text-right':''}'><div class='inline-block rounded-xl px-3 py-2 text-sm ${m.me?'bg-sky-100':'bg-white/70'}'>${m.text}</div><div class='text-[10px] text-black/50'>${new Date(m.ts).toLocaleTimeString()}</div></div>`).join('')
-      chatLog.scrollTop = chatLog.scrollHeight
-    }
-    chatSend.onclick = ()=>{
-      const t = chatMsg.value.trim(); if(!t) return
-      const msgs = get(S.chat,[]); msgs.push({id:randomId(), me:true, text:t, ts:Date.now()}); set(S.chat,msgs); chatMsg.value=''; renderChat()
-    }
+    // =====================================================================
+    const chatLog=byId('chatLog'), chatMsg=byId('chatMsg'), chatSend=byId('chatSend')
+    function renderChat(){ const msgs=get(S.chat,[]); chatLog.innerHTML=msgs.map(m=>`<div class='mb-2 ${m.me?'text-right':''}'><div class='inline-block rounded-xl px-3 py-2 text-sm ${m.me?'bg-sky-100':'bg-white/70'}'>${m.text}</div><div class='text-[10px] text-black/50'>${new Date(m.ts).toLocaleTimeString()}</div></div>`).join(''); chatLog.scrollTop=chatLog.scrollHeight }
+    chatSend.onclick=()=>{ const t=chatMsg.value.trim(); if(!t) return; const msgs=get(S.chat,[]); msgs.push({id:randomId(), me:true, text:t, ts:Date.now()}); set(S.chat,msgs); chatMsg.value=''; renderChat() }
     renderChat()
 
-    // Quick contacts (WhatsApp / Email / Call)
+    // Quick contacts
     const cfg = Object.assign({ wa:'', email:'', phone:'' }, get(S.cfg,{}))
-    const cfgWhatsApp = byId('cfgWhatsApp'), cfgEmail = byId('cfgEmail'), cfgPhone = byId('cfgPhone')
-    cfgWhatsApp.value = cfg.wa || ''
-    cfgEmail.value = cfg.email || ''
-    cfgPhone.value = cfg.phone || ''
-    function saveCfg(){ set(S.cfg,{...get(S.cfg,{}), wa:cfgWhatsApp.value.trim(), email:cfgEmail.value.trim(), phone:cfgPhone.value.trim()}); updateContactButtons() }
-    cfgWhatsApp.addEventListener('change', saveCfg); cfgEmail.addEventListener('change', saveCfg); cfgPhone.addEventListener('change', saveCfg)
-    function updateContactButtons(){
-      const cur = get(S.cfg,{})
-      const waText = encodeURIComponent('Hello! 👋 I would like to chat via Moments Hub.')
-      byId('waBtn').href = cur.wa ? `https://wa.me/${cur.wa}?text=${waText}` : '#'
-      byId('emBtn').href = cur.email ? `mailto:${cur.email}?subject=Hello from Moments Hub` : '#'
-      byId('callBtn').href = cur.phone ? `tel:${cur.phone}` : '#'
-      byId('emBtn').setAttribute('target','_self')
-    }
+    ;['cfgWhatsApp','cfgEmail','cfgPhone'].forEach(id=> byId(id).value = cfg[{cfgWhatsApp:'wa',cfgEmail:'email',cfgPhone:'phone'}[id]]||'')
+    function saveCfg(){ set(S.cfg,{...get(S.cfg,{}), wa:byId('cfgWhatsApp').value.trim(), email:byId('cfgEmail').value.trim(), phone:byId('cfgPhone').value.trim()}); updateContactButtons() }
+    byId('cfgWhatsApp').addEventListener('change', saveCfg); byId('cfgEmail').addEventListener('change', saveCfg); byId('cfgPhone').addEventListener('change', saveCfg)
+    function updateContactButtons(){ const cur=get(S.cfg,{}); const waText=encodeURIComponent('Hello! 👋 I would like to chat via Moments Hub.'); byId('waBtn').href=cur.wa?`https://wa.me/${cur.wa}?text=${waText}`:'#'; byId('emBtn').href=cur.email?`mailto:${cur.email}?subject=Hello from Moments Hub`:'#'; byId('callBtn').href=cur.phone?`tel:${cur.phone}`:'#'; byId('emBtn').setAttribute('target','_self') }
     updateContactButtons()
 
-    // ————————————————————————————————————————————————
+    // =====================================================================
     // ENTERTAINMENT
-    // ————————————————————————————————————————————————
-    const VIDS = get(S.vid,[
-      {t:'Car interior glow‑up (15s)', src:'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'},
-      {t:'Laundry hack short', src:'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4'}
-    ])
-    const AUDS = get(S.aud,[
-      {t:'Chill track 1', src:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'},
-      {t:'Chill track 2', src:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3'}
-    ])
-    const vidPlayer = byId('vidPlayer'), vidList = byId('vidList')
-    const audPlayer = byId('audPlayer'), audList = byId('audList')
-
-    function renderVids(){
-      vidList.innerHTML = ''
-      VIDS.forEach(v=>{
-        const b = document.createElement('button');
-        b.className = 'flex items-center justify-between rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-left shadow-sm';
-        b.innerHTML = `<span>${v.t}</span><span class='text-xs text-black/50'>Play</span>`
-        b.onclick = ()=>{ vidPlayer.src = v.src; vidPlayer.play() }
-        vidList.appendChild(b)
-      })
-      if(VIDS[0]) vidPlayer.src = VIDS[0].src
-    }
-    function renderAuds(){
-      audList.innerHTML = ''
-      AUDS.forEach(a=>{
-        const b = document.createElement('button');
-        b.className = 'flex items-center justify-between rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-left shadow-sm';
-        b.innerHTML = `<span>${a.t}</span><span class='text-xs text-black/50'>Play</span>`
-        b.onclick = ()=>{ audPlayer.src = a.src; audPlayer.play() }
-        audList.appendChild(b)
-      })
-      if(AUDS[0]) audPlayer.src = AUDS[0].src
-    }
+    // =====================================================================
+    const VIDS=get(S.vid,[{t:'Car interior glow‑up (15s)', src:'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'},{t:'Laundry hack short', src:'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4'}])
+    const AUDS=get(S.aud,[{t:'Chill track 1', src:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'},{t:'Chill track 2', src:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3'}])
+    const vidPlayer=byId('vidPlayer'), vidList=byId('vidList'), audPlayer=byId('audPlayer'), audList=byId('audList')
+    function renderVids(){ vidList.innerHTML=''; VIDS.forEach(v=>{ const b=document.createElement('button'); b.className='flex items-center justify-between rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-left shadow-sm'; b.innerHTML=`<span>${v.t}</span><span class='text-xs text-black/50'>Play</span>`; b.onclick=()=>{ vidPlayer.src=v.src; vidPlayer.play() }; vidList.appendChild(b) }); if(VIDS[0]) vidPlayer.src=VIDS[0].src }
+    function renderAuds(){ audList.innerHTML=''; AUDS.forEach(a=>{ const b=document.createElement('button'); b.className='flex items-center justify-between rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-left shadow-sm'; b.innerHTML=`<span>${a.t}</span><span class='text-xs text-black/50'>Play</span>`; b.onclick=()=>{ audPlayer.src=a.src; audPlayer.play() }; audList.appendChild(b) }); if(AUDS[0]) audPlayer.src=AUDS[0].src }
     renderVids(); renderAuds()
 
-    // ————————————————————————————————————————————————
-    // TOURISM (Leaflet + sample POIs)
-    // ————————————————————————————————————————————————
-    const map = L.map('map').setView([0.3476, 32.5825], 12) // Kampala
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map)
-    const PLACES = [
-      {name:'Uganda Museum', lat:0.3369, lon:32.5762, kind:'fun'},
-      {name:'Ndere Cultural Centre', lat:0.3749, lon:32.6200, kind:'fun'},
-      {name:'Kasubi Royal Tombs', lat:0.3472, lon:32.5534, kind:'fun'},
-      {name:'Cafe Javas City Oil', lat:0.3361, lon:32.5837, kind:'food'},
-      {name:'Kampala Serena Hotel', lat:0.3228, lon:32.5863, kind:'hotel'},
-      {name:'Entebbe Botanical Gardens', lat:0.0584, lon:32.4737, kind:'fun'}
-    ]
-    const placeLayer = L.layerGroup().addTo(map)
-    function renderPlaces(filter='all'){
-      placeLayer.clearLayers();
-      const list = byId('placeList'); list.innerHTML=''
-      PLACES.filter(p=> filter==='all' || p.kind===filter).forEach(p=>{
-        const m = L.marker([p.lat,p.lon]).addTo(placeLayer).bindPopup(`<b>${p.name}</b>`)
-        const row = document.createElement('div'); row.className='rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm flex items-center justify-between'
-        const dir = `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}`
-        row.innerHTML = `<div><div class='font-semibold'>${p.name}</div><div class='text-xs text-black/60'>${p.kind}</div></div><a target='_blank' href='${dir}' class='rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm'>Directions</a>`
-        row.onclick = ()=>{ map.setView([p.lat,p.lon], 14); m.openPopup() }
-        list.appendChild(row)
-      })
-    }
-    renderPlaces('all')
-    document.querySelectorAll('[data-filter]').forEach(b=> b.onclick = ()=> renderPlaces(b.dataset.filter))
-    byId('useGPS').onclick = ()=>{ if(navigator.geolocation){ navigator.geolocation.getCurrentPosition(pos=>{ map.setView([pos.coords.latitude, pos.coords.longitude], 13) }) } }
+    // =====================================================================
+    // TOURISM
+    // =====================================================================
+    const map=L.map('map').setView([0.3476, 32.5825], 12)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' }).addTo(map)
+    const PLACES=[{name:'Uganda Museum', lat:0.3369, lon:32.5762, kind:'fun'},{name:'Ndere Cultural Centre', lat:0.3749, lon:32.6200, kind:'fun'},{name:'Kasubi Royal Tombs', lat:0.3472, lon:32.5534, kind:'fun'},{name:'Cafe Javas City Oil', lat:0.3361, lon:32.5837, kind:'food'},{name:'Kampala Serena Hotel', lat:0.3228, lon:32.5863, kind:'hotel'},{name:'Entebbe Botanical Gardens', lat:0.0584, lon:32.4737, kind:'fun'}]
+    const placeLayer=L.layerGroup().addTo(map)
+    function renderPlaces(filter='all'){ placeLayer.clearLayers(); const list=byId('placeList'); list.innerHTML=''; PLACES.filter(p=> filter==='all'||p.kind===filter).forEach(p=>{ const m=L.marker([p.lat,p.lon]).addTo(placeLayer).bindPopup(`<b>${p.name}</b>`); const row=document.createElement('div'); row.className='rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm flex items-center justify-between'; const dir=`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}`; row.innerHTML=`<div><div class='font-semibold'>${p.name}</div><div class='text-xs text-black/60'>${p.kind}</div></div><a target='_blank' href='${dir}' class='rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm'>Directions</a>`; row.onclick=()=>{ map.setView([p.lat,p.lon],14); m.openPopup() }; list.appendChild(row) }) }
+    renderPlaces('all'); document.querySelectorAll('[data-filter]').forEach(b=> b.onclick=()=>renderPlaces(b.dataset.filter)); byId('useGPS').onclick=()=>{ if(navigator.geolocation){ navigator.geolocation.getCurrentPosition(pos=>{ map.setView([pos.coords.latitude,pos.coords.longitude],13) }) } }
 
-    // ————————————————————————————————————————————————
+    // =====================================================================
     // PAYMENTS
-    // ————————————————————————————————————————————————
+    // =====================================================================
     function loadPS(){ return Object.assign({business:'', mtn:'', airtel:'', paypal:'', currency:'UGX'}, get('mh:pay:settings',{})) }
     function savePS(ps){ localStorage.setItem('mh:pay:settings', JSON.stringify(ps)) }
-    const ps = loadPS()
-    ;['ps-business','ps-mtn','ps-airtel','ps-paypal','ps-currency'].forEach(id=> byId(id).value = ps[{ 'ps-business':'business','ps-mtn':'mtn','ps-airtel':'airtel','ps-paypal':'paypal','ps-currency':'currency' }[id]] || '')
-    byId('ps-save').onclick = ()=>{
-      const nps = { business:byId('ps-business').value.trim(), mtn:byId('ps-mtn').value.trim(), airtel:byId('ps-airtel').value.trim(), paypal:byId('ps-paypal').value.trim(), currency:(byId('ps-currency').value.trim()||'UGX') }
-      savePS(nps); alert('Saved payment settings ✓')
-    }
-
-    function renderPayList(){
-      const list = get(S.pay,[]); const host = byId('payList'); host.innerHTML=''
-      list.forEach(p=>{
-        const row = document.createElement('div'); row.className='rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm flex items-center justify-between'
-        row.innerHTML = `<div><div class='font-semibold'>${p.name} — ${p.currency}${Number(p.amount).toFixed(0)}</div><div class='text-xs text-black/60'>${p.reason} • Ref ${p.ref}</div></div><div class='flex gap-2'><button class='rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm' data-paid='${p.id}'>${p.paid?'Paid':'Mark paid'}</button><button class='rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm' data-del='${p.id}'>🗑</button></div>`
-        host.appendChild(row)
-      })
-    }
-    renderPayList()
-    document.addEventListener('click', (e)=>{
-      const d1 = e.target.closest('[data-paid]'); if(d1){ const id=d1.dataset.paid; const list=get(S.pay,[]); const it=list.find(x=>x.id===id); if(it){ it.paid=!it.paid; set(S.pay,list); renderPayList() } }
-      const d2 = e.target.closest('[data-del]'); if(d2){ const id=d2.dataset.del; set(S.pay,get(S.pay,[]).filter(x=>x.id!==id)); renderPayList() }
-    })
-
-    byId('pr-ref').value = `MH-${Date.now().toString().slice(-6)}`
-    byId('pr-make').onclick = ()=>{
-      const settings = loadPS()
-      const req = { id:randomId(), name:byId('pr-name').value.trim(), reason:byId('pr-reason').value.trim(), amount:Number(byId('pr-amount').value||0), ref:(byId('pr-ref').value.trim()||`MH-${Date.now()}`), currency:settings.currency||'UGX', paid:false }
-      if(!req.name || !req.reason || !req.amount){ alert('Fill name, amount, and reason.'); return }
-      const list = get(S.pay,[]); list.unshift(req); set(S.pay,list); renderPayList()
-      byId('pr-out').innerHTML = `<div class='rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm'><div class='font-semibold'>${req.name} — ${req.currency}${req.amount.toFixed(0)}</div><div class='text-xs text-black/60'>${req.reason} • Ref ${req.ref}</div><div class='mt-2 text-xs'>MTN MoMo: ${settings.mtn||'-'} • Airtel Money: ${settings.airtel||'-'} ${settings.paypal? '• PayPal: '+settings.paypal : ''}</div></div>`
-    }
-    byId('pr-copy').onclick = ()=>{ const txt = byId('pr-out').innerText; if(!txt) return alert('Create a request first'); navigator.clipboard.writeText(txt).then(()=>alert('Copied ✓')) }
-    byId('pr-share-wa').onclick = ()=>{
-      const settings = loadPS();
-      const n = byId('pr-name').value.trim(); const a = byId('pr-amount').value.trim(); const r = byId('pr-reason').value.trim(); const ref = byId('pr-ref').value.trim();
-      if(!n||!a||!r) return alert('Fill name, amount, and reason.');
-      const msg = encodeURIComponent(`Hello ${n}! Please pay ${settings.currency}${a} for ${r}.
+    const ps=loadPS(); ['ps-business','ps-mtn','ps-airtel','ps-paypal','ps-currency'].forEach(id=> byId(id).value = ps[{ 'ps-business':'business','ps-mtn':'mtn','ps-airtel':'airtel','ps-paypal':'paypal','ps-currency':'currency' }[id]]||'')
+    byId('ps-save').onclick=()=>{ const nps={ business:byId('ps-business').value.trim(), mtn:byId('ps-mtn').value.trim(), airtel:byId('ps-airtel').value.trim(), paypal:byId('ps-paypal').value.trim(), currency:(byId('ps-currency').value.trim()||'UGX') }; savePS(nps); alert('Saved payment settings ✓') }
+    function renderPayList(){ const list=get(S.pay,[]); const host=byId('payList'); host.innerHTML=''; list.forEach(p=>{ const row=document.createElement('div'); row.className='rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm flex items-center justify-between'; row.innerHTML=`<div><div class='font-semibold'>${p.name} — ${p.currency}${Number(p.amount).toFixed(0)}</div><div class='text-xs text-black/60'>${p.reason} • Ref ${p.ref}</div></div><div class='flex gap-2'><button class='rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm' data-paid='${p.id}'>${p.paid?'Paid':'Mark paid'}</button><button class='rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm' data-del='${p.id}'>🗑</button></div>`; host.appendChild(row) }) }
+    renderPayList(); document.addEventListener('click', (e)=>{ const d1=e.target.closest('[data-paid]'); if(d1){ const id=d1.dataset.paid; const list=get(S.pay,[]); const it=list.find(x=>x.id===id); if(it){ it.paid=!it.paid; set(S.pay,list); renderPayList() } } const d2=e.target.closest('[data-del]'); if(d2){ const id=d2.dataset.del; set(S.pay,get(S.pay,[]).filter(x=>x.id!==id)); renderPayList() } })
+    byId('pr-ref').value=`MH-${Date.now().toString().slice(-6)}`
+    byId('pr-make').onclick=()=>{ const settings=loadPS(); const req={ id:randomId(), name:byId('pr-name').value.trim(), reason:byId('pr-reason').value.trim(), amount:Number(byId('pr-amount').value||0), ref:(byId('pr-ref').value.trim()||`MH-${Date.now()}`), currency:settings.currency||'UGX', paid:false }; if(!req.name||!req.reason||!req.amount){ alert('Fill name, amount, and reason.'); return } const list=get(S.pay,[]); list.unshift(req); set(S.pay,list); renderPayList(); byId('pr-out').innerHTML=`<div class='rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm'><div class='font-semibold'>${req.name} — ${req.currency}${req.amount.toFixed(0)}</div><div class='text-xs text-black/60'>${req.reason} • Ref ${req.ref}</div><div class='mt-2 text-xs'>MTN MoMo: ${settings.mtn||'-'} • Airtel Money: ${settings.airtel||'-'} ${settings.paypal? '• PayPal: '+settings.paypal : ''}</div></div>` }
+    byId('pr-copy').onclick=()=>{ const txt=byId('pr-out').innerText; if(!txt) return alert('Create a request first'); navigator.clipboard.writeText(txt).then(()=>alert('Copied ✓')) }
+    byId('pr-share-wa').onclick=()=>{ const settings=loadPS(); const n=byId('pr-name').value.trim(); const a=byId('pr-amount').value.trim(); const r=byId('pr-reason').value.trim(); const ref=byId('pr-ref').value.trim(); if(!n||!a||!r) return alert('Fill name, amount, and reason.'); const msg=encodeURIComponent(`Hello ${n}! Please pay ${settings.currency}${a} for ${r}.
 Ref: ${ref}.
-Options: MTN ${settings.mtn||'-'}, Airtel ${settings.airtel||'-'}${settings.paypal? ', PayPal '+settings.paypal:''}. Thank you!`)
-      const phone = byId('pr-phone').value.trim() || (get(S.cfg,{}).wa||'')
-      if(!phone) return alert('Add a WhatsApp number to share.');
-      window.open(`https://wa.me/${phone}?text=${msg}`, '_blank')
+Options: MTN ${settings.mtn||'-'}, Airtel ${settings.airtel||'-'}${settings.paypal? ', PayPal '+settings.paypal:''}. Thank you!`); const phone=byId('pr-phone').value.trim() || (get(S.cfg,{}).wa||''); if(!phone) return alert('Add a WhatsApp number to share.'); window.open(`https://wa.me/${phone}?text=${msg}`, '_blank') }
+
+    // =====================================================================
+    // ESSENTIALS
+    // =====================================================================
+    function renderTodos(){ const host=byId('td-list'); host.innerHTML=''; const todos=get(S.todos,[]); todos.forEach(t=>{ const row=document.createElement('div'); row.className='flex items-center justify-between rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm'; row.innerHTML=`<div class='flex items-center gap-2'><input type='checkbox' ${t.done?'checked':''}><span class='${t.done?'line-through opacity-60':''}'>${t.text}</span></div><button class='rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm' data-del='${t.id}'>🗑</button>`; row.querySelector('input').onchange=(e)=>{ t.done=e.target.checked; set(S.todos,get(S.todos,[]).map(x=>x.id===t.id?t:x)); renderTodos() }; row.querySelector('[data-del]').onclick=()=>{ set(S.todos,get(S.todos,[]).filter(x=>x.id!==t.id)); renderTodos() }; host.appendChild(row) }) }
+    byId('td-add').onclick=()=>{ const txt=byId('td-text').value.trim(); if(!txt) return; const todos=get(S.todos,[]); todos.unshift({id:randomId(), text:txt, done:false}); set(S.todos,todos); byId('td-text').value=''; renderTodos() }
+    byId('notes').value=get(S.notes,''); byId('notesSave').onclick=()=>{ set(S.notes, byId('notes').value); alert('Notes saved ✓') }
+    renderTodos()
+
+    // =====================================================================
+    // PRO STUDIO (emoji/stickers, free-drag text, pinch-zoom crop, music, export)
+    // =====================================================================
+    const Pro = { state:null, ffmpeg:null }
+    const EMOJIS = ['🔥','✨','💥','🎉','😍','😎','🕺','💪','✅','⭐','⚡','🥳','🌊','🚀','💯','🧼','🚗','🦁','🎬']
+    const PRESETS = { vivid:{b:110,c:115,s:150,h:0,sp:0,bl:0}, noir:{b:105,c:130,s:0,h:0,sp:0,bl:0}, film:{b:102,c:108,s:115,h:12,sp:20,bl:0.2}, cyber:{b:105,c:125,s:170,h:220,sp:0,bl:0.4}, pastel:{b:110,c:95,s:90,h:10,sp:0,bl:0.6}, sunset:{b:108,c:110,s:140,h:20,sp:10,bl:0}, neon:{b:105,c:140,s:180,h:300,sp:0,bl:0.2} }
+
+    byId('openStudioPro').onclick = ()=> openStudio()
+
+    function openStudio(){
+      if(!byId('momFile').files[0] && !momFileBlobUrl) return alert('Upload a video or image first')
+      const file = byId('momFile').files[0] || ( ()=>{ const r = dataURLtoFile(momFileBlobUrl, 'media'); return r })()
+      const isVideo = file.type.startsWith('video')
+      const blobUrl = momFileBlobUrl || URL.createObjectURL(file)
+      Pro.state = { file, isVideo, blobUrl, fx:{b:110,c:110,s:120,h:0,sp:0,bl:0}, crop:{scale:1, x:0, y:0}, overlays:[], audio:{ musicFile:null, musicUrl:'', musicVol:0.9, videoVol:0.25 }, mediaW:720, mediaH:1280 }
+
+      modal.classList.remove('hidden')
+      modal.innerHTML = `
+      <div class='w-full max-w-5xl grid gap-4 lg:grid-cols-[1fr_320px]'>
+        <div class='rounded-2xl bg-white p-4 card'>
+          <div class='flex items-center justify-between'><div class='text-xs uppercase tracking-widest text-black/50'>Studio Pro</div><button class='chip' id='studioClose'>Close</button></div>
+          <div id='studioStage' class='studio-stage mt-3 rounded-xl'>
+            ${isVideo? `<video id='studioMedia' class='studio-media' src='${blobUrl}' autoplay loop muted playsinline></video>` : `<img id='studioMedia' class='studio-media' src='${blobUrl}' />`}
+            <div id='overlayLayer' class='overlay-layer'></div>
+          </div>
+          <div class='mt-3 flex flex-wrap items-center gap-2 text-sm'>
+            <button class='chip' data-preset='vivid'>Vivid+</button>
+            <button class='chip' data-preset='noir'>Noir</button>
+            <button class='chip' data-preset='film'>Film</button>
+            <button class='chip' data-preset='cyber'>Cyberpunk</button>
+            <button class='chip' data-preset='pastel'>Pastel</button>
+            <button class='chip' data-preset='sunset'>Sunset</button>
+            <button class='chip' data-preset='neon'>Neon</button>
+            <span class='chip'>Pinch to zoom • Drag to move • Shift+Wheel = Zoom • Alt+Wheel = Rotate</span>
+          </div>
+          <div class='mt-3 grid grid-cols-2 md:grid-cols-3 gap-3 text-xs'>
+            <label>Brightness <input id='fx-b' type='range' min='50' max='150' value='110' class='w-full knob'></label>
+            <label>Contrast <input id='fx-c' type='range' min='50' max='150' value='110' class='w-full knob'></label>
+            <label>Saturation <input id='fx-s' type='range' min='50' max='200' value='120' class='w-full knob'></label>
+            <label>Hue <input id='fx-h' type='range' min='0' max='360' value='0' class='w-full knob'></label>
+            <label>Sepia <input id='fx-sp' type='range' min='0' max='100' value='0' class='w-full knob'></label>
+            <label>Blur <input id='fx-bl' type='range' min='0' max='5' step='0.1' value='0' class='w-full knob'></label>
+          </div>
+        </div>
+        <div class='rounded-2xl bg-white p-4 card grid content-start gap-3'>
+          <div class='text-xs uppercase tracking-widest text-black/50'>Overlays</div>
+          <button id='btnAddText' class='rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm'>Add Text</button>
+          <div class='emoji-picker flex flex-wrap gap-1'>${EMOJIS.map(e=>`<button class='chip' data-emoji='${e}'>${e}</button>`).join('')}</div>
+          <label class='rounded-xl border border-black/10 bg-white/80 px-3 py-2 shadow-sm cursor-pointer text-sm'>➕ Add Sticker PNG<input id='stickerFile' type='file' accept='image/png' class='hidden'></label>
+          <div class='text-xs uppercase tracking-widest text-black/50 mt-2'>Music sticker</div>
+          <label class='rounded-xl border border-black/10 bg-white/80 px-3 py-2 shadow-sm cursor-pointer text-sm'>🎵 Add MP3<input id='musicFile' type='file' accept='audio/mpeg,audio/mp3' class='hidden'></label>
+          <label class='text-xs'>Music Volume <input id='musicVol' type='range' min='0' max='100' value='90' class='w-full knob'></label>
+          <label class='text-xs'>Video Volume <input id='videoVol' type='range' min='0' max='100' value='25' class='w-full knob'></label>
+          <div class='text-xs uppercase tracking-widest text-black/50 mt-2'>Actions</div>
+          <button id='btnPostStudio' class='rounded-full border border-black/10 bg-emerald-600 text-white px-3 py-2 text-xs font-semibold shadow-sm'>Post to Moments</button>
+          <button id='btnExport' class='rounded-full border border-black/10 bg-white/80 px-3 py-2 text-xs font-semibold shadow-sm'>Export Video (Beta)</button>
+          <a id='exportLink' class='hidden text-xs text-sky-600 underline'>Download export</a>
+        </div>
+      </div>`
+
+      // Wire preset buttons
+      modal.querySelectorAll('[data-preset]').forEach(b=> b.onclick=()=>{ const p=PRESETS[b.dataset.preset]; Object.assign(Pro.state.fx,p); syncFXControls(); applyFX() })
+
+      // FX sliders
+      ;['b','c','s','h','sp','bl'].forEach(k=>{ modal.querySelector(`#fx-${k}`).addEventListener('input', ()=>{ Pro.state.fx = { b:+modal.querySelector('#fx-b').value, c:+modal.querySelector('#fx-c').value, s:+modal.querySelector('#fx-s').value, h:+modal.querySelector('#fx-h').value, sp:+modal.querySelector('#fx-sp').value, bl:+modal.querySelector('#fx-bl').value }; applyFX() }) })
+      function syncFXControls(){ const fx=Pro.state.fx; modal.querySelector('#fx-b').value=fx.b; modal.querySelector('#fx-c').value=fx.c; modal.querySelector('#fx-s').value=fx.s; modal.querySelector('#fx-h').value=fx.h; modal.querySelector('#fx-sp').value=fx.sp; modal.querySelector('#fx-bl').value=fx.bl }
+
+      // Stage controls (pinch-zoom crop + drag)
+      const stage=byId('studioStage'), media=byId('studioMedia'), layer=byId('overlayLayer')
+      media.style.filter = fxToCss(Pro.state.fx)
+
+      let drag={active:false, lastX:0, lastY:0}; let pointers=new Map(); let base={scale:1, x:0, y:0}
+      function applyCrop(){ const {scale,x,y}=Pro.state.crop; media.style.transform=`translate(${x}px,${y}px) scale(${scale})` }
+      applyCrop()
+      stage.addEventListener('pointerdown', (e)=>{ if(e.target!==stage) return; stage.setPointerCapture(e.pointerId); pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}); drag.active=true; drag.lastX=e.clientX; drag.lastY=e.clientY })
+      stage.addEventListener('pointermove', (e)=>{ if(!drag.active) return; if(pointers.size>=2){ const pts=[...pointers.values()]; const p0=pts[0], p1={x:e.clientX,y:e.clientY}; const prevDist=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y); pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}); const pts2=[...pointers.values()]; const newDist=Math.hypot(pts2[0].x-pts2[1].x, pts2[0].y-pts2[1].y); const scaleDelta=(newDist/prevDist)||1; Pro.state.crop.scale *= scaleDelta; applyCrop(); return } const dx=e.clientX-drag.lastX, dy=e.clientY-drag.lastY; Pro.state.crop.x += dx; Pro.state.crop.y += dy; drag.lastX=e.clientX; drag.lastY=e.clientY; applyCrop() })
+      stage.addEventListener('pointerup', (e)=>{ stage.releasePointerCapture(e.pointerId); pointers.delete(e.pointerId); drag.active=false })
+      stage.addEventListener('wheel', (e)=>{ if(e.shiftKey){ e.preventDefault(); Pro.state.crop.scale *= (e.deltaY<0?1.05:0.95); applyCrop() } })
+
+      function applyFX(){ media.style.filter = fxToCss(Pro.state.fx) }
+
+      // Overlays: add text / emoji / sticker
+      byId('btnAddText').onclick = ()=> addOverlay({type:'text', text:'Your text', size:28, x:100, y:100, scale:1, rot:0})
+      modal.querySelectorAll('[data-emoji]').forEach(b=> b.onclick=()=> addOverlay({type:'emoji', text:b.dataset.emoji, size:48, x:120, y:140, scale:1, rot:0}))
+      byId('stickerFile').addEventListener('change', (e)=>{ const f=e.target.files[0]; if(!f) return; const url=URL.createObjectURL(f); addOverlay({type:'sticker', src:url, w:120, x:150, y:160, scale:1, rot:0}) })
+
+      function mkElForOverlay(ov){
+        const el=document.createElement(ov.type==='sticker'?'img':'div'); el.className='overlay-item'; el.dataset.id=ov.id; if(ov.type==='text'){ el.innerHTML=`<div class='overlay-text' contenteditable='true' style='font-size:${ov.size||28}px'>${ov.text||''}</div>` } else if(ov.type==='emoji'){ el.innerHTML=`<div style='font-size:${ov.size||48}px'>${ov.text||'😎'}</div>` } else { el.src=ov.src; el.style.width=(ov.w||120)+'px' }
+        const handle=document.createElement('div'); handle.className='overlay-handle'; handle.textContent='↔'; const rm=document.createElement('div'); rm.className='overlay-remove'; rm.textContent='×'; el.appendChild(handle); el.appendChild(rm)
+        el.style.transform=`translate(${ov.x}px,${ov.y}px) scale(${ov.scale||1}) rotate(${ov.rot||0}deg)`; el.style.left='0'; el.style.top='0'
+        // drag
+        let dragging=false, last={x:0,y:0}
+        el.addEventListener('pointerdown', (e)=>{ if(e.target===handle||e.target===rm) return; e.stopPropagation(); dragging=true; last={x:e.clientX,y:e.clientY}; el.setPointerCapture(e.pointerId) })
+        el.addEventListener('pointermove', (e)=>{ if(!dragging) return; const dx=e.clientX-last.x, dy=e.clientY-last.y; ov.x+=dx; ov.y+=dy; last={x:e.clientX,y:e.clientY}; el.style.transform=`translate(${ov.x}px,${ov.y}px) scale(${ov.scale}) rotate(${ov.rot}deg)` })
+        el.addEventListener('pointerup', ()=> dragging=false)
+        // resize/rotate via handle (Alt+drag rotate)
+        let sizing=false, sLast={x:0,y:0}
+        handle.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); sizing=true; sLast={x:e.clientX,y:e.clientY}; handle.setPointerCapture(e.pointerId) })
+        handle.addEventListener('pointermove', (e)=>{ if(!sizing) return; const dx=e.clientX - sLast.x; ov.scale = Math.max(0.2, ov.scale + dx/200); if(e.altKey){ ov.rot = (ov.rot||0) + dx/2 } el.style.transform=`translate(${ov.x}px,${ov.y}px) scale(${ov.scale}) rotate(${ov.rot||0}deg)`; sLast={x:e.clientX,y:e.clientY} })
+        handle.addEventListener('pointerup', ()=> sizing=false)
+        rm.addEventListener('click', ()=>{ Pro.state.overlays = Pro.state.overlays.filter(o=>o.id!==ov.id); el.remove() })
+        return el
+      }
+      function addOverlay(ov){ ov.id = randomId(); Pro.state.overlays.push(ov); const el=mkElForOverlay(ov); layer.appendChild(el) }
+
+      // Music sticker
+      byId('musicFile').addEventListener('change', (e)=>{ const f=e.target.files[0]; if(!f) return; if(Pro.state.audio.musicUrl) URL.revokeObjectURL(Pro.state.audio.musicUrl); Pro.state.audio.musicFile=f; Pro.state.audio.musicUrl=URL.createObjectURL(f); alert('Music added ✓ (tap 🔈 on a posted Moment to hear)') })
+      byId('musicVol').addEventListener('input', (e)=> Pro.state.audio.musicVol = (+e.target.value)/100 )
+      byId('videoVol').addEventListener('input', (e)=> Pro.state.audio.videoVol = (+e.target.value)/100 )
+
+      // Actions: post & export
+      byId('btnPostStudio').onclick = async ()=>{
+        const cap=byId('momCaption').value.trim(); const tags=byId('momTags').value.split(',').map(s=>s.trim().replace(/^#/, '')).filter(Boolean); const link=byId('momLink').value.trim()
+        try{
+          if(!Pro.state.isVideo){
+            const dataUrl = await bakeImage()
+            const file = dataURLtoFile(dataUrl, 'moment.jpg')
+            const url = await ensureRepoUrlFromFile(file, 'images')
+            addMoment({kind:'image', src:url, caption:cap, tags, link})
+          }else{
+            const vurl = await ensureRepoUrlFromFile(Pro.state.file, 'videos')
+            let musicUrl = Pro.state.audio.musicUrl
+            if(Pro.state.audio.musicFile){ musicUrl = await ensureRepoUrlFromFile(Pro.state.audio.musicFile,'audio') }
+            addMoment({kind:'video', src:vurl, caption:cap, tags, link, fx:Pro.state.fx, overlays:Pro.state.overlays, audio:{ musicUrl, musicVol:Pro.state.audio.musicVol, videoVol:Pro.state.audio.videoVol }, crop:Pro.state.crop})
+          }
+          modal.classList.add('hidden')
+        }catch(err){ alert(String(err.message||err)) }
+      }
+
+      byId('btnExport').onclick = ()=> exportVideoFFmpeg()
+      byId('studioClose').onclick = ()=> modal.classList.add('hidden')
     }
 
-    // ————————————————————————————————————————————————
-    // ESSENTIALS
-    // ————————————————————————————————————————————————
-    function renderTodos(){
-      const host = byId('td-list'); host.innerHTML=''
-      const todos = get(S.todos,[])
-      todos.forEach(t=>{
-        const row = document.createElement('div'); row.className='flex items-center justify-between rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm'
-        row.innerHTML = `<div class='flex items-center gap-2'><input type='checkbox' ${t.done?'checked':''}><span class='${t.done?'line-through opacity-60':''}'>${t.text}</span></div><button class='rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm' data-del='${t.id}'>🗑</button>`
-        row.querySelector('input').onchange = (e)=>{ t.done = e.target.checked; set(S.todos,get(S.todos,[]).map(x=>x.id===t.id?t:x)); renderTodos() }
-        row.querySelector('[data-del]').onclick = ()=>{ set(S.todos,get(S.todos,[]).filter(x=>x.id!==t.id)); renderTodos() }
-        host.appendChild(row)
-      })
+    async function bakeImage(){ // compose to 720x1280
+      const W=720, H=1280; const c=document.createElement('canvas'); c.width=W; c.height=H; const ctx=c.getContext('2d')
+      const img=new Image(); img.crossOrigin='anonymous'; img.src=Pro.state.blobUrl; await img.decode().catch(()=>{})
+      const scale=Pro.state.crop.scale||1, x=Pro.state.crop.x||0, y=Pro.state.crop.y||0
+      // Draw base with crop via transform
+      ctx.save(); ctx.translate(W/2 + x, H/2 + y); ctx.scale(scale, scale); ctx.filter = fxToCss(Pro.state.fx); const r=Math.max(W/img.width, H/img.height); const w=img.width*r, h=img.height*r; ctx.drawImage(img, -w/2, -h/2, w, h); ctx.restore();
+      // Overlays
+      for(const ov of Pro.state.overlays){ ctx.save(); ctx.translate(ov.x, ov.y); ctx.rotate((ov.rot||0)*Math.PI/180); ctx.scale(ov.scale||1, ov.scale||1); if(ov.type==='text'){ ctx.font=`bold ${ov.size||28}px system-ui, sans-serif`; ctx.fillStyle='#fff'; ctx.shadowColor='rgba(0,0,0,.7)'; ctx.shadowBlur=12; ctx.textBaseline='top'; ctx.fillText(ov.text||'', 0,0) } else if(ov.type==='emoji'){ ctx.font=`${ov.size||48}px serif`; ctx.fillText(ov.text||'😎', 0,0) } else { const sImg=new Image(); sImg.src=ov.src; await sImg.decode().catch(()=>{}); const W2=ov.w||120; ctx.drawImage(sImg, 0,0, W2, W2*(sImg.height/sImg.width)) } ctx.restore() }
+      return c.toDataURL('image/jpeg', .9)
     }
-    byId('td-add').onclick = ()=>{ const txt = byId('td-text').value.trim(); if(!txt) return; const todos = get(S.todos,[]); todos.unshift({id:randomId(), text:txt, done:false}); set(S.todos,todos); byId('td-text').value=''; renderTodos() }
-    byId('notes').value = get(S.notes,'')
-    byId('notesSave').onclick = ()=>{ set(S.notes, byId('notes').value); alert('Notes saved ✓') }
-    renderTodos()
+
+    function dataURLtoFile(dataUrl, filename){ const arr=dataUrl.split(','); const mime=arr[0].match(/:(.*?);/)[1]; const bstr=atob(arr[1]); let n=bstr.length; const u8=new Uint8Array(n); while(n--){ u8[n]=bstr.charCodeAt(n) } return new File([u8], filename, {type:mime}) }
+
+    async function exportVideoFFmpeg(){
+      if(!Pro.state?.isVideo) return alert('Export is for video. For images, use Post to Moments (it bakes edits).')
+      try{
+        if(!Pro.ffmpeg){ Pro.ffmpeg = FFmpeg.createFFmpeg({ log:true, corePath: undefined }); await Pro.ffmpeg.load() }
+        const ff=Pro.ffmpeg
+        const inputName='in.mp4', outName='out.mp4', overlayPng='ov.png', musicName='mus.mp3'
+        // Write input video
+        const inData = await Pro.state.file.arrayBuffer(); ff.FS('writeFile', inputName, new Uint8Array(inData))
+        // Build overlay PNG from current overlays (720x1280)
+        const png = await overlaysToPNG(720,1280); ff.FS('writeFile', overlayPng, png)
+        const hasMusic = !!Pro.state.audio.musicFile
+        if(hasMusic){ const musBuf = await Pro.state.audio.musicFile.arrayBuffer(); ff.FS('writeFile', musicName, new Uint8Array(musBuf)) }
+        // Filter chain
+        const fx=Pro.state.fx
+        const hueRad = (fx.h||0)*Math.PI/180
+        const crop = Pro.state.crop || {scale:1,x:0,y:0}
+        // We'll scale to 720x1280, then apply eq/hue/blur and overlay. Crop via scale+translate baked using overlay transform; for simplicity we skip hard crop and rely on scale (looks correct for 9:16 canvas)
+        let vf = `scale=720:trunc(ih*720/iw)`, af = []
+        vf += `,pad=720:1280:(ow-iw)/2:(oh-ih)/2:black`
+        vf += `,eq=brightness=${(fx.b-100)/100}:contrast=${(fx.c/100)}:saturation=${(fx.s/100)}`
+        if(fx.h) vf += `,hue=h=${hueRad}`
+        if(fx.sp) vf += `,colorchannelmixer=.393+.607*(1-${fx.sp/100}):.769+.231*(1-${fx.sp/100}):.189+.811*(1-${fx.sp/100})` // approximate sepia
+        if(fx.bl) vf += `,boxblur=${Math.max(1, Math.round(fx.bl*2))}`
+        vf += `,overlay=0:0`
+        const args = ['-i', inputName, '-i', overlayPng, '-filter_complex', `[0:v]${vf}[v]`]
+        if(hasMusic){ args.push('-i', musicName, '-map', '[v]', '-map', '0:a?', '-map', '2:a', '-filter_complex:a', `amerge=inputs=2,pan=stereo|c0<c0+c2|c1<c1+c3,volume=${Pro.state.audio.videoVol+Pro.state.audio.musicVol}`) }
+        else { args.push('-map','[v]','-map','0:a?') }
+        args.push('-shortest','-preset','veryfast','-movflags','+faststart', outName)
+        await ff.run(...args)
+        const data = ff.FS('readFile', outName)
+        const blob = new Blob([data.buffer], {type:'video/mp4'})
+        const url = URL.createObjectURL(blob)
+        const link = byId('exportLink'); link.href=url; link.download='moments-export.mp4'; link.classList.remove('hidden'); link.textContent='Download export (MP4)'
+        // Also upload export to GitHub Pages data repo
+        try{ const upFile = new File([blob], `export-${Date.now()}.mp4`, {type:'video/mp4'})
+          const repoUrl = await ensureRepoUrlFromFile(upFile, 'exports')
+          link.textContent = 'Open hosted export (MP4)'
+          link.href = repoUrl
+          link.removeAttribute('download')
+          alert('Export ready ✓ — uploaded to GitHub Pages and link updated')
+        }catch{ alert('Export ready ✓ — hosted upload skipped (check your PAT). Local download link shown.') }
+      }catch(err){ console.error(err); alert('Export failed (browser may be low on memory). Posting with live filters still works.') }
+    }
+
+    async function overlaysToPNG(W,H){ const c=document.createElement('canvas'); c.width=W; c.height=H; const ctx=c.getContext('2d'); ctx.clearRect(0,0,W,H)
+      // draw current overlays to transparent canvas
+      for(const ov of Pro.state.overlays){ ctx.save(); ctx.translate(ov.x, ov.y); ctx.rotate((ov.rot||0)*Math.PI/180); ctx.scale(ov.scale||1, ov.scale||1); if(ov.type==='text'){ ctx.font=`bold ${ov.size||28}px system-ui, sans-serif`; ctx.fillStyle='#fff'; ctx.shadowColor='rgba(0,0,0,.7)'; ctx.shadowBlur=12; ctx.textBaseline='top'; ctx.fillText(ov.text||'',0,0) } else if(ov.type==='emoji'){ ctx.font=`${ov.size||48}px serif`; ctx.fillText(ov.text||'😎',0,0) } else { const img=new Image(); img.src=ov.src; await img.decode().catch(()=>{}); const W2=ov.w||120; ctx.drawImage(img,0,0,W2, W2*(img.height/img.width)) } ctx.restore() }
+      return new Uint8Array(await (await fetch(c.toDataURL('image/png'))).arrayBuffer()) }
 
     // Default tab
     switchTab('moments')
