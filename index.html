@@ -932,5 +932,107 @@ Options: MTN ${settings.mtn||'-'}, Airtel ${settings.airtel||'-'}${settings.payp
   try{ window.renderMoments(); }catch{}
 })();
 </script>
+<script>
+// ======================================================
+// Auto‑reflect uploads to public site: https://hunter9201.github.io/moments/
+// This mirrors the moments INDEX into the "moments" repo so the site updates
+// immediately after each upload (client‑side, GitHub API only).
+// ======================================================
+(function(){
+  // --- Lightweight helpers (self-contained so we don't depend on earlier scope)
+  const CFG_KEY = 'mh:cfg';
+  const S = { cfg: CFG_KEY };
+  function get(k,d){ try{ const v=JSON.parse(localStorage.getItem(k)); return v ?? d }catch{ return d } }
+  function token(){ try{ return (JSON.parse(localStorage.getItem(S.cfg)||'{}').gh_pat||'').trim() }catch{return ''} }
+  function b64encode(str){ return btoa(unescape(encodeURIComponent(str))) }
+  function b64decode(b64){ try{ return decodeURIComponent(escape(atob(b64.replace(/
+/g,'')))) }catch{ return atob(b64.replace(/
+/g,'')) } }
+
+  // --- Data repo (where media + per-moment JSON are written)
+  const DATA = { owner:'hunter9201', repo:'momentshub-data' };
+  // --- Mirror repo (the public site you gave)
+  const MIRROR = { owner:'hunter9201', repo:'moments', pagesBase:'https://hunter9201.github.io/moments' };
+
+  async function api(path, opts={}){
+    const h = { 'Accept':'application/vnd.github+json' };
+    const t = token(); if(t) h['Authorization'] = `token ${t}`;
+    const res = await fetch(`https://api.github.com${path}`, { ...opts, headers:{...h, ...(opts.headers||{})} });
+    if(!res.ok) throw new Error(`${opts.method||'GET'} ${path} → ${res.status}`);
+    return res.json();
+  }
+
+  async function getDefaultBranch(owner, repo){
+    const cacheKey = `mh:branch:${owner}/${repo}`;
+    const cached = localStorage.getItem(cacheKey); if(cached) return cached;
+    const j = await api(`/repos/${owner}/${repo}`);
+    const b = j.default_branch || 'gh-pages';
+    localStorage.setItem(cacheKey, b);
+    return b;
+  }
+
+  async function getFile(owner, repo, branch, path){
+    try {
+      const j = await api(`/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`);
+      if(j && j.content){ return { sha:j.sha, text: b64decode(j.content), json: JSON.parse(b64decode(j.content)) } }
+      return { sha:j.sha, text:null, json:null };
+    } catch(e){ if(String(e).includes('404')) return null; throw e }
+  }
+
+  async function putJson(owner, repo, branch, path, obj, message){
+    const existing = await getFile(owner, repo, branch, path);
+    const body = { message: message||`update ${path}`, content: b64encode(JSON.stringify(obj,null,2)), branch };
+    if(existing && existing.sha) body.sha = existing.sha;
+    await api(`/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`, { method:'PUT', body: JSON.stringify(body) });
+  }
+
+  // Read the just-posted moment meta from the DATA repo (author/id/kind/src…)
+  async function readDataMoment(id){
+    const branch = await getDefaultBranch(DATA.owner, DATA.repo);
+    const f = await getFile(DATA.owner, DATA.repo, branch, `moments/${id}.json`);
+    if(!f || !f.json) throw new Error('Could not load moment meta from data repo');
+    return f.json;
+  }
+
+  // Mirror: write/update indexes/moments.json in the MIRROR repo
+  async function mirrorIndexEntry(entry){
+    const branch = await getDefaultBranch(MIRROR.owner, MIRROR.repo);
+    const path = 'indexes/moments.json';
+    let idx = [];
+    const cur = await getFile(MIRROR.owner, MIRROR.repo, branch, path);
+    if(cur && Array.isArray(cur.json)) idx = cur.json;
+    idx = idx.filter(x=>x.id !== entry.id);
+    idx.unshift(entry);
+    if(idx.length>1000) idx = idx.slice(0,1000);
+    await putJson(MIRROR.owner, MIRROR.repo, branch, path, idx, `index: add ${entry.id}`);
+  }
+
+  // Patch window.addMoment to also mirror into the public site
+  const prevAdd = window.addMoment;
+  if(typeof prevAdd === 'function'){
+    window.addMoment = async function(obj){
+      // run original poster (writes to data repo & its index)
+      const id = await prevAdd(obj);
+      try {
+        // load canonical meta from data repo, then mirror as an index entry
+        const meta = await readDataMoment(id);
+        const entry = {
+          id: meta.id,
+          author: meta.author,
+          kind: meta.kind || (/\.(mp4|webm|mov)(\?|$)/i.test(meta.src||meta.media_url)?'video':'image'),
+          caption: meta.caption||'',
+          tags: meta.tags||[],
+          link: meta.link||null,
+          media_url: meta.src || meta.media_url, // keep media hosted on the data repo
+          created_at: meta.created_at || new Date().toISOString()
+        };
+        await mirrorIndexEntry(entry);
+        console.log('[Moments] Mirrored to public site index:', entry.id);
+      } catch(err){ console.warn('Mirror to public moments site failed:', err); }
+      return id;
+    }
+  }
+})();
+</script>
 </body>
 </html>
