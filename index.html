@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Moments — Pages-only Social</title>
-  <meta name="description" content="Pages-only social app: profiles, reels, stories, DMs, editor — single repo, no servers." />
+  <meta name="description" content="Profiles, reels, stories, DMs, groups, hashtags, editor — single GitHub Pages repo, no servers." />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html,body{height:100%}
@@ -13,12 +13,12 @@
       radial-gradient(1000px 500px at 90% -10%, rgba(217,70,239,.10), transparent)}
     .card{box-shadow:0 10px 30px rgba(2,6,23,.06)}
     .chip{font-size:.72rem;padding:.2rem .6rem;border-radius:999px;background:rgba(0,0,0,.08)}
+    .btn{border:1px solid rgba(0,0,0,.1);background:#fff;padding:.42rem .7rem;border-radius:.75rem;box-shadow:0 1px 2px rgba(0,0,0,.06);font-size:.85rem}
     .mom-feed{scroll-snap-type:y mandatory; overflow-y:auto; max-height:85vh}
     .mom-item{scroll-snap-align:center}
-    .story-progress{height:6px;background:rgba(255,255,255,.25)}
-    .story-progress > div{height:100%;background:#fff;width:0%}
     .thumb{aspect-ratio:1/1;object-fit:cover}
-    .btn{border:1px solid rgba(0,0,0,.1);background:#fff;padding:.4rem .7rem;border-radius:.75rem;box-shadow:0 1px 2px rgba(0,0,0,.06);font-size:.8rem}
+    .story-progress{height:6px;background:rgba(255,255,255,.25)}
+    .story-progress>div{height:100%;background:#fff;width:0%}
   </style>
 </head>
 <body class="min-h-screen radial-bg text-slate-900">
@@ -45,6 +45,7 @@
       <nav class="mt-3 flex flex-wrap gap-2">
         <button data-tab="home" class="tab-btn btn bg-white shadow">Feed</button>
         <button data-tab="moments" class="tab-btn btn">Moments</button>
+        <button data-tab="explore" class="tab-btn btn">Explore #</button>
         <button data-tab="chat" class="tab-btn btn">Communication</button>
         <button data-tab="profile" class="tab-btn btn">Profile</button>
       </nav>
@@ -53,7 +54,7 @@
 
   <main class="mx-auto max-w-6xl px-4 py-6 space-y-8">
 
-    <!-- HOME / FEED (autoplay grid) -->
+    <!-- HOME / FEED -->
     <section id="tab-home" class="space-y-6">
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="flex items-center justify-between">
@@ -67,18 +68,22 @@
     <!-- MOMENTS -->
     <section id="tab-moments" class="hidden space-y-4">
 
-      <!-- Stories (multi-upload) -->
+      <!-- Stories row -->
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="flex items-center justify-between">
           <div class="text-xs uppercase tracking-widest text-black/50">Stories (48h)</div>
-          <label class="btn cursor-pointer">
-            ➕ Add Stories (up to 4)
-            <input id="storyFiles" type="file" accept="video/*,image/*" multiple class="hidden">
-          </label>
+          <div class="flex gap-2">
+            <label class="btn cursor-pointer">
+              ➕ Add Stories (up to 4)
+              <input id="storyFiles" type="file" accept="video/*,image/*" multiple class="hidden">
+            </label>
+            <button id="myStories" class="btn">My Stories</button>
+          </div>
         </div>
         <div id="storiesRow" class="mt-3 flex gap-3 overflow-x-auto pb-2"></div>
       </div>
 
+      <!-- Composer + Reels -->
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <!-- Composer -->
         <div class="order-2 lg:order-1 lg:col-span-1 rounded-2xl border border-black/10 bg-white/80 p-4 card h-max">
@@ -89,7 +94,7 @@
             </label>
             <div id="momThumbs" class="grid grid-cols-4 gap-2"></div>
             <div class="flex gap-2">
-              <button id="openStudio" class="btn">🎨 Open Studio Pro</button>
+              <button id="openStudio" class="btn">🎨 Studio Pro</button>
               <button id="clearSel" class="btn">✖ Clear</button>
             </div>
             <input id="momCaption" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Caption" />
@@ -99,11 +104,11 @@
               <button id="momPost" class="btn">Post Moment</button>
               <button id="saveDraft" class="btn">Save Draft</button>
             </div>
-            <small class="text-black/50">Media uploads to this repo and serves from GitHub Pages.</small>
+            <small class="text-black/50">Uploads and data live in this repo (GitHub Pages).</small>
           </div>
         </div>
 
-        <!-- Reels feed -->
+        <!-- Reels -->
         <div class="order-1 lg:order-2 lg:col-span-2 rounded-2xl border border-black/10 bg-white/80 p-0 card">
           <div class="flex items-center justify-between p-4">
             <div class="text-xs uppercase tracking-widest text-black/50">Moments</div>
@@ -114,18 +119,42 @@
       </div>
     </section>
 
+    <!-- EXPLORE (hashtags) -->
+    <section id="tab-explore" class="hidden space-y-6">
+      <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
+        <div class="flex items-center justify-between">
+          <div class="text-xs uppercase tracking-widest text-black/50">Trending Hashtags</div>
+          <input id="tagSearch" placeholder="Search #hashtag" class="rounded-full border border-black/10 bg-white/70 px-3 py-1 text-sm shadow-sm">
+        </div>
+        <div id="tagCloud" class="mt-3 flex flex-wrap gap-2"></div>
+      </div>
+      <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
+        <div id="tagTitle" class="text-xs uppercase tracking-widest text-black/50">Select a tag</div>
+        <div id="tagFeed" class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+      </div>
+    </section>
+
     <!-- COMMUNICATION -->
     <section id="tab-chat" class="hidden space-y-6">
       <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+
+        <!-- DMs -->
         <div class="md:col-span-2 rounded-2xl border border-black/10 bg-white/80 p-4 card">
-          <div class="text-xs uppercase tracking-widest text-black/50">Direct Messages</div>
-          <div id="dmTitle" class="mt-1 text-xs font-semibold text-black/70"></div>
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-xs uppercase tracking-widest text-black/50">Direct Messages</div>
+              <div id="dmTitle" class="mt-1 text-xs font-semibold text-black/70"></div>
+            </div>
+            <div class="text-xs text-black/60">Click a person to start</div>
+          </div>
           <div id="chatLog" class="mt-3 h-72 overflow-y-auto rounded-xl border border-black/5 bg-white/70 p-3 text-sm"></div>
           <div class="mt-3 flex gap-2">
             <input id="chatMsg" class="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10" placeholder="Type a message…" />
             <button id="chatSend" class="btn">Send</button>
           </div>
         </div>
+
+        <!-- People -->
         <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
           <div class="text-xs uppercase tracking-widest text-black/50">People</div>
           <div class="mt-3 grid gap-2 text-sm">
@@ -135,10 +164,42 @@
           </div>
         </div>
       </div>
+
+      <!-- Groups -->
+      <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
+        <div class="flex items-center justify-between">
+          <div class="text-xs uppercase tracking-widest text-black/50">Group Chats</div>
+          <div class="flex gap-2">
+            <input id="newGroupName" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="Group name">
+            <button id="createGroup" class="btn">Create</button>
+          </div>
+        </div>
+        <div class="mt-3 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <div class="text-xs text-black/60 mb-1">Groups</div>
+            <div id="groupList" class="grid gap-2 max-h-72 overflow-y-auto"></div>
+          </div>
+          <div class="md:col-span-2">
+            <div class="flex items-center justify-between">
+              <div id="groupTitle" class="text-sm font-semibold"></div>
+              <div class="flex gap-2">
+                <button id="joinGroup" class="btn hidden">Join</button>
+                <button id="leaveGroup" class="btn hidden">Leave</button>
+              </div>
+            </div>
+            <div id="groupLog" class="mt-2 h-72 overflow-y-auto rounded-xl border border-black/5 bg-white/70 p-3 text-sm"></div>
+            <div class="mt-3 flex gap-2">
+              <input id="groupMsg" class="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="Message group…">
+              <button id="groupSend" class="btn">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- PROFILE -->
     <section id="tab-profile" class="hidden space-y-6">
+      <!-- Me -->
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="text-xs uppercase tracking-widest text-black/50">Your Profile</div>
         <div class="mt-3 grid gap-3 text-sm md:grid-cols-2">
@@ -149,21 +210,50 @@
               <div id="profHandle" class="text-xs text-black/60">—</div>
             </div>
           </div>
-          <div>
+          <div class="grid gap-2">
             <textarea id="profBio" rows="3" class="w-full rounded-xl border border-black/10 bg-white/80 p-3 text-sm" placeholder="Your bio"></textarea>
-            <div class="mt-2 flex items-center justify-between">
-              <input id="profDisplayName" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="Display name">
+            <input id="profDisplayName" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="Display name">
+            <div class="flex items-center gap-2">
+              <label class="btn cursor-pointer">Upload avatar
+                <input id="avatarFile" type="file" accept="image/*" class="hidden">
+              </label>
               <button id="profSave" class="btn">Save Profile</button>
             </div>
           </div>
         </div>
       </div>
-    </section>
 
+      <!-- Admin Panel (owner/admins only) -->
+      <div id="adminPanel" class="hidden rounded-2xl border border-black/10 bg-white/80 p-4 card">
+        <div class="text-xs uppercase tracking-widest text-black/50">Admin Panel</div>
+        <div class="mt-3 grid gap-3 md:grid-cols-3 text-sm">
+          <div>
+            <div class="font-semibold">Banlist</div>
+            <div id="banList" class="mt-1 space-y-1"></div>
+            <div class="flex gap-2 mt-2">
+              <input id="banUser" class="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="@login">
+              <button id="banAdd" class="btn">Ban</button>
+            </div>
+          </div>
+          <div>
+            <div class="font-semibold">Allowlist/Admins</div>
+            <div id="allowList" class="mt-1 space-y-1"></div>
+            <div class="flex gap-2 mt-2">
+              <input id="allowUser" class="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="@login">
+              <button id="allowAdd" class="btn">Allow</button>
+            </div>
+          </div>
+          <div>
+            <div class="font-semibold">Flagged</div>
+            <div id="flagList" class="mt-1 space-y-1 max-h-48 overflow-y-auto"></div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer class="mt-6 grid place-items-center pb-16 text-center text-xs text-black/60">
-    <div>All data stored in this repo (GitHub Pages). No servers.</div>
+    <div>All data is this repo. No servers.</div>
   </footer>
 
   <!-- Modal (settings / story viewer / confirmations) -->
@@ -204,7 +294,7 @@
             <button id="stAddText" class="btn w-full">Add Text</button>
             <button id="stAddEmoji" class="btn w-full">Add Emoji</button>
             <button id="stAddSticker" class="btn w-full">Add Sticker</button>
-            <div class="text-xs text-black/60">Drag overlays freely. Click to edit text. Delete with ⌫/Delete.</div>
+            <div class="text-xs text-black/60">Drag overlays freely. Double-click text to edit. Delete with ⌫/Delete.</div>
           </div>
         </div>
       </div>
@@ -215,12 +305,11 @@
 <script>
 /* =========================================================================
    Moments — Pages-only Social (single repo)
-   Repo: hunter9201/moments
-   Pages: https://hunter9201.github.io/moments
+   Repo: hunter9201/moments | Pages: https://hunter9201.github.io/moments
    ========================================================================= */
 const GH = { owner:'hunter9201', repo:'moments', pagesBase:'https://hunter9201.github.io/moments' };
 
-// ----------------- helpers -----------------
+/* ----------------- helpers ----------------- */
 const S = { cfg:'mh:cfg', draft:'mh:draft' };
 const $ = (id)=>document.getElementById(id);
 const get = (k,d)=>{ try{const v=JSON.parse(localStorage.getItem(k)); return v??d}catch{return d} };
@@ -232,8 +321,9 @@ const rand = ()=> Math.random().toString(36).slice(2,9);
 const nowISO = ()=> new Date().toISOString();
 const pagesURL = (p)=> `${GH.pagesBase}/${p.replace(/^\/+/,'')}`;
 const clamp = (v,min,max)=> Math.max(min, Math.min(max, v));
+const isOwner = (login)=> login===GH.owner;
 
-// ----------------- GitHub API (contents) -----------------
+/* ----------------- GitHub API ----------------- */
 async function api(path, opts={}) {
   const h = { 'Accept':'application/vnd.github+json' };
   if(token()) h['Authorization'] = `token ${token()}`;
@@ -260,6 +350,7 @@ async function putJson(path, obj, msg){
   const body = { message: msg||`update ${path}`, content: b64e(JSON.stringify(obj,null,2)), branch: br };
   if(cur && cur.sha) body.sha = cur.sha;
   await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}`, { method:'PUT', body: JSON.stringify(body) });
+  return true;
 }
 async function putFile(path, file, msg){
   const br = await defaultBranch();
@@ -271,8 +362,18 @@ async function putFile(path, file, msg){
   await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}`, { method:'PUT', body: JSON.stringify(body) });
   return pagesURL(path);
 }
+async function delPath(path, sha, msg){
+  const br = await defaultBranch();
+  await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}`, { method:'DELETE', body: JSON.stringify({ message: msg||`delete ${path}`, sha, branch: br }) });
+}
+function urlToRepoPath(url){
+  try{
+    if(!url.startsWith(GH.pagesBase)) return null;
+    return url.replace(GH.pagesBase+'/','');
+  }catch{ return null }
+}
 
-// ----------------- Auth / Profile -----------------
+/* ----------------- Auth / Profile ----------------- */
 async function ghMe(){
   if(!token()) return null;
   const r = await fetch('https://api.github.com/user', { headers:{'Authorization':`token ${token()}`} });
@@ -291,14 +392,12 @@ async function ensureProfile(){
   const cur = await getFile(path);
   const p = cur?.json || { login, display_name: me.name||login, bio:'', avatar_url: me.avatar_url||'', created_at: nowISO() };
   await putJson(path, p, `profile: ${login}`);
-  // index
   const idxPath = 'indexes/profiles.json';
   const idxCur = await getFile(idxPath); let arr = Array.isArray(idxCur?.json)? idxCur.json: [];
   arr = [{ login, display_name: p.display_name, avatar_url: p.avatar_url }, ...arr.filter(x=>x.login!==login)];
-  if(arr.length>5000) arr = arr.slice(0,5000);
   await putJson(idxPath, arr, `index(profiles): add ${login}`);
   set(S.cfg,{...get(S.cfg,{}), gh_login: login, gh_name: p.display_name, gh_avatar: p.avatar_url});
-  renderUserBadge(); loadPeople(); loadProfileUI();
+  renderUserBadge(); loadPeople(); loadProfileUI(); checkAdmin();
 }
 $('btnSignIn').onclick = async ()=>{
   if(!token()){
@@ -325,22 +424,35 @@ $('profSave').onclick = async ()=>{
   p.display_name = $('profDisplayName').value.trim() || p.display_name || me;
   p.bio = $('profBio').value||'';
   await putJson(`profiles/${me}.json`, p, `profile update: ${me}`);
-  // update index row
   const idxCur = await getFile('indexes/profiles.json'); let arr=Array.isArray(idxCur?.json)? idxCur.json: [];
   arr = [{ login:me, display_name:p.display_name, avatar_url:p.avatar_url||'' }, ...arr.filter(x=>x.login!==me)];
   await putJson('indexes/profiles.json', arr, `index(profiles): update ${me}`);
   alert('Profile saved ✓'); loadPeople(); loadProfileUI(); renderFeeds();
 };
+$('avatarFile').addEventListener('change', async (e)=>{
+  const me=get(S.cfg,{}).gh_login; if(!me) return alert('Sign in first');
+  const f=e.target.files[0]; if(!f) return;
+  const url = await putFile(`media/avatars/${me}_${Date.now()}.jpg`, f, `avatar: ${me}`);
+  const pf=await getFile(`profiles/${me}.json`); const p=pf?.json||{login:me, created_at:nowISO()};
+  p.avatar_url = url; await putJson(`profiles/${me}.json`, p, `avatar update: ${me}`);
+  const idxCur = await getFile('indexes/profiles.json'); let arr=Array.isArray(idxCur?.json)? idxCur.json: [];
+  arr = [{ login:me, display_name:p.display_name||me, avatar_url:url }, ...arr.filter(x=>x.login!==me)];
+  await putJson('indexes/profiles.json', arr, `index(profiles): avatar ${me}`);
+  $('profAvatar').src=url; set(S.cfg,{...get(S.cfg,{}), gh_avatar:url}); alert('Avatar updated ✓');
+});
 
-// ----------------- Tabs -----------------
-const tabs = ['home','moments','chat','profile'];
+/* ----------------- Tabs ----------------- */
+const tabs=['home','moments','explore','chat','profile'];
 function switchTab(t){ tabs.forEach(k=> $(`tab-${k}`).classList.toggle('hidden', k!==t)) }
 document.querySelectorAll('.tab-btn').forEach(b=> b.addEventListener('click', ()=> switchTab(b.dataset.tab)));
 switchTab('home');
 
-// ----------------- People + DMs -----------------
+/* ----------------- Data fetch helpers ----------------- */
 async function fetchJson(url){ try{ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) return null; return r.json(); }catch{ return null } }
 async function profilesIndex(){ const j = await fetchJson(pagesURL('indexes/profiles.json')); return Array.isArray(j)? j:[]; }
+async function hashtagsIndex(){ const j = await fetchJson(pagesURL('indexes/hashtags.json')); return j&&typeof j==='object'? j:{}; }
+
+/* ----------------- People + DMs ----------------- */
 async function loadPeople(){
   const list=$('peopleList'); if(!list) return; list.innerHTML=`<div class='text-xs text-black/60'>Loading…</div>`;
   const q=($('peopleSearch')?.value||'').toLowerCase().trim(); const me=get(S.cfg,{}).gh_login||'';
@@ -367,9 +479,18 @@ function renderThread(t){
   (t.messages||[]).forEach(m=>{
     const mine=m.author===me;
     const div=document.createElement('div'); div.className=`mb-2 ${mine?'text-right':''}`;
-    div.innerHTML=`<div class='inline-block rounded-xl px-3 py-2 text-sm ${mine?'bg-sky-100':'bg-white/70'}'>${m.text}</div><div class='text-[10px] text-black/50'>${new Date(m.ts).toLocaleString()}</div>`;
+    const delBtn = mine ? `<button class="ml-2 text-[11px] underline" data-delmsg="${m.id}" data-dmid="${t.id}">Delete</button>` : '';
+    div.innerHTML=`<div class='inline-block rounded-xl px-3 py-2 text-sm ${mine?'bg-sky-100':'bg-white/70'}'>${m.text}${delBtn}</div><div class='text-[10px] text-black/50'>${new Date(m.ts).toLocaleString()}</div>`;
     host.appendChild(div);
   });
+  host.querySelectorAll('[data-delmsg]').forEach(b=> b.addEventListener('click', async ()=>{
+    const me=await ghMe(); if(!me) return;
+    const mid=b.getAttribute('data-delmsg'); const id=b.getAttribute('data-dmid');
+    const path=`dms/${id}.json`; const cur=await getFile(path); const t=cur?.json||{id, messages:[]};
+    t.messages = (t.messages||[]).filter(x=> x.id!==mid || x.author!==me.login);
+    await putJson(path, t, `dm-delete: ${me.login}`);
+    loadThread(t.participants?.find(u=>u!==me.login)||'');
+  }));
   host.scrollTop=host.scrollHeight;
 }
 $('chatSend').onclick = async ()=>{
@@ -377,6 +498,7 @@ $('chatSend').onclick = async ()=>{
   const text=($('chatMsg').value||'').trim(); if(!peer||!text) return;
   try{
     const me=await ghMe(); if(!me) return alert('Sign in first');
+    if(await isBanned(me.login)) return alert('You are banned from posting.');
     const id=threadId(me.login,peer); const path=`dms/${id}.json`;
     const cur=await getFile(path); const t=cur?.json||{ id, participants:[me.login,peer], messages:[] };
     t.messages.push({ id:`${Date.now()}_${rand()}`, author:me.login, text, ts:Date.now() });
@@ -386,15 +508,152 @@ $('chatSend').onclick = async ()=>{
 };
 async function openDM(peer){ await loadThread(peer) } window.openDM=openDM;
 
-// ----------------- Moments (feed + actions) -----------------
+/* ----------------- Groups ----------------- */
+async function groupsIndex(){ return await fetchJson(pagesURL('indexes/groups.json')) || [] }
+async function loadGroups(){
+  const list=$('groupList'); list.innerHTML='<div class="text-xs text-black/60">Loading…</div>';
+  const idx=await groupsIndex(); if(!idx.length){ list.innerHTML='<div class="text-xs text-black/60">No groups yet.</div>'; return }
+  list.innerHTML=''; idx.forEach(g=>{
+    const row=document.createElement('button'); row.className='flex items-center justify-between rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-left shadow-sm';
+    row.innerHTML=`<div><div class="font-semibold">${g.name}</div><div class="text-[11px] text-black/60">${g.members?.length||0} members</div></div><span class='text-xs'>Open</span>`;
+    row.onclick=()=> openGroup(g.id); list.appendChild(row);
+  });
+}
+$('createGroup').onclick = async ()=>{
+  const name = ($('newGroupName').value||'').trim(); if(!name) return;
+  const me=await ghMe(); if(!me) return alert('Sign in first');
+  const id = name.toLowerCase().replace(/[^a-z0-9]+/g,'-') + '-' + rand();
+  const g = { id, name, owner: me.login, created_at: nowISO(), members:[me.login], messages:[] };
+  await putJson(`groups/${id}.json`, g, `group create: ${id}`);
+  const idx=await groupsIndex(); await putJson('indexes/groups.json', [g, ...idx], `index(groups): add ${id}`);
+  $('newGroupName').value=''; loadGroups(); openGroup(id);
+};
+async function openGroup(id){
+  const file=await getFile(`groups/${id}.json`); const g=file?.json; if(!g) return;
+  $('groupTitle').textContent = g.name;
+  $('groupLog').dataset.gid = id;
+  renderGroup(g);
+}
+function renderGroup(g){
+  const me=get(S.cfg,{}).gh_login||''; const host=$('groupLog'); host.innerHTML='';
+  const isMember = g.members?.includes(me);
+  $('joinGroup').classList.toggle('hidden', isMember); $('leaveGroup').classList.toggle('hidden', !isMember);
+  g.messages.forEach(m=>{
+    const mine=m.author===me;
+    const del = mine ? `<button class="ml-2 text-[11px] underline" data-gdel="${m.id}" data-gid="${g.id}">Delete</button>` : '';
+    const div=document.createElement('div'); div.className=`mb-2 ${mine?'text-right':''}`;
+    div.innerHTML=`<div class='inline-block rounded-xl px-3 py-2 text-sm ${mine?'bg-amber-100':'bg-white/70'}'>${m.text}${del}</div><div class='text-[10px] text-black/50'>${m.author} • ${new Date(m.ts).toLocaleString()}</div>`;
+    host.appendChild(div);
+  });
+  host.querySelectorAll('[data-gdel]').forEach(b=> b.addEventListener('click', async ()=>{
+    const me=await ghMe(); if(!me) return;
+    const mid=b.getAttribute('data-gdel'); const gid=b.getAttribute('data-gid');
+    const cur=await getFile(`groups/${gid}.json`); const g=cur?.json; if(!g) return;
+    g.messages = (g.messages||[]).filter(x=> x.id!==mid || x.author!==me.login);
+    await putJson(`groups/${gid}.json`, g, `group msg delete: ${me.login}`);
+    renderGroup(g);
+  }));
+  host.scrollTop=host.scrollHeight;
+}
+$('joinGroup').onclick = async ()=>{
+  const me=await ghMe(); if(!me) return alert('Sign in first');
+  const gid=$('groupLog').dataset.gid; if(!gid) return;
+  const cur=await getFile(`groups/${gid}.json`); const g=cur?.json; if(!g) return;
+  if(!g.members.includes(me.login)) g.members.push(me.login);
+  await putJson(`groups/${gid}.json`, g, `group join: ${me.login}`);
+  renderGroup(g);
+};
+$('leaveGroup').onclick = async ()=>{
+  const me=await ghMe(); if(!me) return alert('Sign in first');
+  const gid=$('groupLog').dataset.gid; if(!gid) return;
+  const cur=await getFile(`groups/${gid}.json`); const g=cur?.json; if(!g) return;
+  g.members = (g.members||[]).filter(u=>u!==me.login);
+  await putJson(`groups/${gid}.json`, g, `group leave: ${me.login}`);
+  renderGroup(g);
+};
+$('groupSend').onclick = async ()=>{
+  const text=($('groupMsg').value||'').trim(); if(!text) return;
+  const me=await ghMe(); if(!me) return alert('Sign in first');
+  if(await isBanned(me.login)) return alert('You are banned from posting.');
+  const gid=$('groupLog').dataset.gid; if(!gid) return alert('Open a group');
+  const cur=await getFile(`groups/${gid}.json`); const g=cur?.json; if(!g) return;
+  if(!(g.members||[]).includes(me.login)) return alert('Join the group first.');
+  g.messages.push({ id:`${Date.now()}_${rand()}`, author:me.login, text, ts:Date.now() });
+  await putJson(`groups/${gid}.json`, g, `group msg: ${me.login}`);
+  $('groupMsg').value=''; renderGroup(g);
+};
+loadGroups();
+
+/* ----------------- Moderation ----------------- */
+async function moderationGet(){
+  const allow = (await getFile('moderation/allowlist.json'))?.json || { admins:[GH.owner] };
+  const ban = (await getFile('moderation/banlist.json'))?.json || { users:[] };
+  const flagged = (await getFile('moderation/flagged.json'))?.json || [];
+  return { allow, ban, flagged };
+}
+async function isAdmin(login){
+  const {allow}=await moderationGet(); return isOwner(login) || (allow.admins||[]).includes(login);
+}
+async function isBanned(login){
+  const {ban}=await moderationGet(); return (ban.users||[]).includes(login);
+}
+async function checkAdmin(){
+  const me=get(S.cfg,{}).gh_login; if(!me) return;
+  const adm=await isAdmin(me); $('adminPanel').classList.toggle('hidden', !adm);
+  if(adm){ renderModeration() }
+}
+async function renderModeration(){
+  const {allow,ban,flagged}=await moderationGet();
+  const bl=$('banList'); bl.innerHTML=(ban.users||[]).map(u=> `<div class="text-sm flex items-center justify-between"><span>@${u}</span><button data-unban="${u}" class="text-xs underline">remove</button></div>`).join('')||'<div class="text-xs text-black/60">—</div>';
+  const al=$('allowList'); al.innerHTML=(allow.admins||[]).map(u=> `<div class="text-sm flex items-center justify-between"><span>@${u}</span><button data-unallow="${u}" class="text-xs underline">remove</button></div>`).join('')||'<div class="text-xs text-black/60">—</div>';
+  const fl=$('flagList'); fl.innerHTML=(flagged||[]).slice(-100).reverse().map(f=> `<div class="text-xs border rounded px-2 py-1">${f.type} • ${f.id} • by @${f.by} • ${new Date(f.ts).toLocaleString()}</div>`).join('')||'<div class="text-xs text-black/60">—</div>';
+  bl.querySelectorAll('[data-unban]').forEach(b=> b.onclick = async ()=>{ const login=b.dataset.unban; const data=(await getFile('moderation/banlist.json'))?.json||{users:[]}; data.users=data.users.filter(u=>u!==login); await putJson('moderation/banlist.json', data, `unban ${login}`); renderModeration() });
+  al.querySelectorAll('[data-unallow]').forEach(b=> b.onclick = async ()=>{ const login=b.dataset.unallow; const data=(await getFile('moderation/allowlist.json'))?.json||{admins:[GH.owner]}; data.admins=data.admins.filter(u=>u!==login); await putJson('moderation/allowlist.json', data, `remove admin ${login}`); renderModeration() });
+}
+$('banAdd').onclick = async ()=>{ const me=await ghMe(); if(!me || !(await isAdmin(me.login))) return alert('Admins only'); const u=$('banUser').value.trim().replace(/^@/,''); if(!u) return; const data=(await getFile('moderation/banlist.json'))?.json||{users:[]}; if(!data.users.includes(u)) data.users.push(u); await putJson('moderation/banlist.json', data, `ban ${u}`); $('banUser').value=''; renderModeration() };
+$('allowAdd').onclick = async ()=>{ const me=await ghMe(); if(!me || !(await isAdmin(me.login))) return alert('Admins only'); const u=$('allowUser').value.trim().replace(/^@/,''); if(!u) return; const data=(await getFile('moderation/allowlist.json'))?.json||{admins:[GH.owner]}; if(!data.admins.includes(u)) data.admins.push(u); await putJson('moderation/allowlist.json', data, `add admin ${u}`); $('allowUser').value=''; renderModeration() };
+
+/* ----------------- Hashtags (explore) ----------------- */
+function tagBtn(t,cnt){ const b=document.createElement('button'); b.className='btn'; b.textContent = `#${t} (${cnt||0})`; b.onclick=()=> showTag(t); return b; }
+async function renderTagsCloud(){
+  const cloud=$('tagCloud'); cloud.innerHTML='';
+  const tags=await hashtagsIndex(); const arr=Object.entries(tags).map(([k,v])=>({tag:k, count:v.count||0, last:v.last||0}));
+  arr.sort((a,b)=> (b.count - a.count) || (b.last - a.last));
+  if(!arr.length){ cloud.innerHTML='<div class="text-xs text-black/60">No tags yet.</div>'; return }
+  arr.slice(0,60).forEach(t=> cloud.appendChild(tagBtn(t.tag, t.count)));
+}
+$('tagSearch').addEventListener('input', async (e)=>{
+  const q=e.target.value.toLowerCase().replace(/^#/,'').trim(); const cloud=$('tagCloud'); cloud.innerHTML='';
+  const tags=await hashtagsIndex(); Object.keys(tags).filter(k=> k.toLowerCase().includes(q)).slice(0,80).forEach(k=> cloud.appendChild(tagBtn(k, tags[k].count||0)));
+});
+async function showTag(tag){
+  $('tagTitle').textContent = `#${tag}`;
+  const feed=$('tagFeed'); feed.innerHTML='';
+  const idx = await fetchJson(pagesURL('indexes/moments.json')) || [];
+  const filtered = idx.filter(m=> (m.tags||[]).map(t=>t.toLowerCase()).includes(tag.toLowerCase()));
+  if(!filtered.length){ feed.innerHTML='<div class="text-xs text-black/60">No posts for this tag yet.</div>'; return }
+  const map=await pmap();
+  filtered.forEach(m=> feed.appendChild(homeCard(m, map[m.author])));
+}
+renderTagsCloud();
+
+/* ----------------- Search across feeds ----------------- */
+$('search').addEventListener('input', (e)=>{
+  const q=e.target.value.toLowerCase().trim();
+  [...($('homeFeed')?.children||[])].forEach(c=> c.style.display = c.textContent.toLowerCase().includes(q)? '' : 'none');
+  [...($('momFeed')?.children||[])].forEach(c=> c.style.display = (c.dataset.searchable||'').includes(q)? '' : 'none');
+});
+
+/* ----------------- Moments (feed + actions) ----------------- */
 async function pmap(){ const arr=await profilesIndex(); const m={}; arr.forEach(p=> m[p.login]=p); return m; }
+function isMine(author){ return (get(S.cfg,{}).gh_login||'')===author }
 
 function momentCard(m, prof){
   const name=prof?.display_name||m.author||'user', avatar=prof?.avatar_url||'';
   const wrap=document.createElement('div'); wrap.className='mom-item rounded-2xl border border-black/10 bg-black/90 text-white overflow-hidden relative';
   wrap.dataset.searchable=`${m.caption||''} ${(m.tags||[]).join(' ')}`.toLowerCase();
-  const mediaHTML = (m.media && m.media.length>1)
-    ? `<div class='absolute left-2 top-2 text-xs bg-white/20 rounded px-2 py-0.5'>${m.media.length} photos</div>` : '';
+  const mediaHTML = (m.media && m.media.length>1) ? `<div class='absolute left-2 top-2 text-xs bg-white/20 rounded px-2 py-0.5'>${m.media.length} photos</div>` : '';
+  const reportBtn = `<button class='btn reportBtn' data-id='${m.id}'>🚩</button>`;
   wrap.innerHTML = `
     <div class='aspect-[9/16] w-full relative'>
       ${m.kind==='video'
@@ -411,9 +670,10 @@ function momentCard(m, prof){
         <button class='btn cmtBtn' data-id='${m.id}'>💬 ${m.comments?.length||0}</button>
         ${m.link? `<a class='btn' target='_blank' href='${m.link}'>🔗</a>`:''}
         <button class='btn delBtn ${isMine(m.author)?'':'hidden'}' data-id='${m.id}'>🗑</button>
+        ${reportBtn}
       </div>
     </div>
-    ${m.media && m.media.length>1 ? `<div class='bg-white text-slate-900 p-2 flex gap-2 overflow-x-auto'>${m.media.map((mm,i)=> mm.kind==='image'? `<img src='${mm.url}' class='h-16 w-16 rounded object-cover'>`:`<span class='text-xs bg-black/5 rounded px-2 py-1'>video</span>`).join('')}</div>`:''}
+    ${m.media && m.media.length>1 ? `<div class='bg-white text-slate-900 p-2 flex gap-2 overflow-x-auto'>${m.media.map(mm=> mm.kind==='image'? `<img src='${mm.url}' class='h-16 w-16 rounded object-cover'>`:`<span class='text-xs bg-black/5 rounded px-2 py-1'>video</span>`).join('')}</div>`:''}
     <div class='p-3 bg-white text-slate-900'>
       <div class='flex items-center gap-2'>
         <input class='cmtInput grow rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm' placeholder='Add a comment…'>
@@ -425,8 +685,6 @@ function momentCard(m, prof){
     </div>`;
   return wrap;
 }
-function isMine(author){ return (get(S.cfg,{}).gh_login||'')===author }
-
 async function renderMoments(){
   const host=$('momFeed'); if(!host) return; host.innerHTML='';
   const idx=await fetchJson(pagesURL('indexes/moments.json')) || [];
@@ -434,9 +692,7 @@ async function renderMoments(){
   const map=await pmap();
   idx.forEach(m=> host.appendChild(momentCard(m, map[m.author])));
   wireMomentActions(host);
-  // autoplay
-  const vids=[...host.querySelectorAll('.mom-video')];
-  attachObserver(vids);
+  const vids=[...host.querySelectorAll('.mom-video')]; attachObserver(vids);
 }
 function wireMomentActions(scope){
   scope.querySelectorAll('.likeBtn').forEach(b=> b.onclick = async ()=>{
@@ -444,19 +700,9 @@ function wireMomentActions(scope){
     const mf=await getFile(`moments/${id}.json`); if(!mf?.json) return;
     const m=mf.json; m.likes=(m.likes||0)+1; await putJson(`moments/${id}.json`, m, `like: ${id}`);
     const cur=await getFile('indexes/moments.json'); let arr=Array.isArray(cur?.json)? cur.json:[]; arr=arr.map(x=> x.id===id? {...x, likes:m.likes }: x);
-    await putJson('indexes/moments.json', arr, `index(moments): like ${id}`);
-    b.textContent='❤ '+m.likes;
+    await putJson('indexes/moments.json', arr, `index(moments): like ${id}`); b.textContent='❤ '+m.likes;
   });
-  scope.querySelectorAll('.delBtn').forEach(b=> b.onclick = async ()=>{
-    const id=b.dataset.id; if(!confirm('Delete this post?')) return;
-    const me=get(S.cfg,{}).gh_login; const mf=await getFile(`moments/${id}.json`); if(mf?.json?.author!==me) return alert('Only author can delete.');
-    // GitHub contents delete requires SHA — reuse mf.sha:
-    const br=await defaultBranch();
-    await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(`moments/${id}.json`)}`, { method:'DELETE', body: JSON.stringify({ message:`delete moment ${id}`, sha: mf.sha, branch: br }) });
-    const cur=await getFile('indexes/moments.json'); let arr=Array.isArray(cur?.json)? cur.json:[]; arr=arr.filter(x=> x.id!==id);
-    await putJson('indexes/moments.json', arr, `index(moments): remove ${id}`);
-    renderMoments(); renderHome();
-  });
+  scope.querySelectorAll('.delBtn').forEach(b=> b.onclick = ()=> confirmDeleteMoment(b.dataset.id));
   scope.querySelectorAll('.cmtSend').forEach(btn=> btn.onclick = async ()=>{
     const id=btn.dataset.id; const me=await ghMe(); if(!me) return alert('Sign in first');
     const wrap=btn.closest('.p-3'); const input=wrap.querySelector('.cmtInput'); const text=(input.value||'').trim(); if(!text) return;
@@ -467,9 +713,32 @@ function wireMomentActions(scope){
     await putJson('indexes/moments.json', arr, `index(moments): comment ${id}`);
     input.value=''; const list=$(`cmt-${id}`); const p=document.createElement('div'); p.innerHTML = `<b>${me.login}</b>: ${text}`; list.appendChild(p); list.scrollTop=list.scrollHeight;
   });
+  scope.querySelectorAll('.reportBtn').forEach(b=> b.onclick = async ()=>{
+    const me=await ghMe(); if(!me) return alert('Sign in first');
+    const id=b.dataset.id; const flagged=(await getFile('moderation/flagged.json'))?.json||[];
+    flagged.push({ type:'moment', id, by:me.login, ts:Date.now() });
+    await putJson('moderation/flagged.json', flagged, `report moment ${id}`);
+    alert('Reported. Thanks.');
+  });
+}
+async function confirmDeleteMoment(id){
+  const me=get(S.cfg,{}).gh_login; if(!me) return alert('Sign in first');
+  const mf=await getFile(`moments/${id}.json`); const m=mf?.json; if(!m) return;
+  if(m.author!==me) return alert('Only author can delete.');
+  if(!confirm('Delete this post (and try to remove media)?')) return;
+  // delete JSON
+  await delPath(`moments/${id}.json`, mf.sha, `delete moment ${id}`);
+  // remove from index
+  const cur=await getFile('indexes/moments.json'); let arr=Array.isArray(cur?.json)? cur.json:[]; arr=arr.filter(x=> x.id!==id); await putJson('indexes/moments.json', arr, `index(moments): remove ${id}`);
+  // try delete media files
+  for(const mm of (m.media||[])){
+    const path=urlToRepoPath(mm.url); if(!path) continue;
+    const f=await getFile(path); if(f?.sha){ try{ await delPath(path, f.sha, `delete media ${id}`) }catch{} }
+  }
+  renderMoments(); renderHome();
 }
 
-// ----------------- Home feed (grid + autoplay) -----------------
+/* ----------------- Home feed (grid + autoplay) ----------------- */
 function homeCard(m, prof){
   const name=prof?.display_name||m.author||'user', avatar=prof?.avatar_url||'';
   const el=document.createElement('div'); el.className='group overflow-hidden rounded-2xl border bg-white shadow card';
@@ -504,14 +773,7 @@ function attachObserver(videos){
   videos.forEach(v=> obs.observe(v));
 }
 
-// ----------------- Search -----------------
-$('search').addEventListener('input', (e)=>{
-  const q=e.target.value.toLowerCase().trim();
-  [...($('homeFeed')?.children||[])].forEach(c=> c.style.display = c.textContent.toLowerCase().includes(q)? '' : 'none');
-  [...($('momFeed')?.children||[])].forEach(c=> c.style.display = (c.dataset.searchable||'').includes(q)? '' : 'none');
-});
-
-// ----------------- Composer (multi-image, studio, posting) -----------------
+/* ----------------- Composer (multi-image, studio, posting) ----------------- */
 let momSelected = []; // [{file, name, edited?:true}]
 function resetComposer(){
   momSelected=[]; $('momThumbs').innerHTML=''; $('momFiles').value=''; $('momCaption').value=''; $('momTags').value=''; $('momLink').value='';
@@ -520,7 +782,6 @@ $('clearSel').onclick = resetComposer;
 
 $('momFiles').addEventListener('change', (e)=>{
   const files=[...(e.target.files||[])];
-  // exclusive: either video(1) or images(up to 4)
   const hasVideo=files.some(f=> f.type.startsWith('video'));
   let chosen=[];
   if(hasVideo){ chosen=[files.find(f=> f.type.startsWith('video'))]; }
@@ -534,27 +795,18 @@ function drawThumbs(){
     const url=URL.createObjectURL(o.file);
     const btn=document.createElement('button');
     btn.className='relative rounded overflow-hidden border border-black/10';
-    btn.title='Click to edit in Studio Pro';
-    btn.innerHTML=`<img src='${url}' class='thumb w-full rounded'>${o.edited? "<span class='absolute bottom-1 right-1 text-[10px] bg-white/80 rounded px-1'>edited</span>":""}`;
-    btn.onclick=()=> openStudioWithFile(idx);
-    host.appendChild(btn);
+    btn.title='Click to edit in Studio Pro'; btn.innerHTML=`<img src='${url}' class='thumb w-full rounded'>${o.edited? "<span class='absolute bottom-1 right-1 text-[10px] bg-white/80 rounded px-1'>edited</span>":""}`;
+    btn.onclick=()=> openStudioWithFile(idx); host.appendChild(btn);
   });
 }
-$('saveDraft').onclick = ()=>{
-  if(!momSelected.length) return alert('Select media first');
-  const draft = {
-    caption:$('momCaption').value,
-    tags:$('momTags').value,
-    link:$('momLink').value,
-    files: momSelected.map(o=> ({ name:o.name, size:o.file.size, type:o.file.type }))
-  };
+$('saveDraft').onclick = ()=>{ if(!momSelected.length) return alert('Select media first');
+  const draft = { caption:$('momCaption').value, tags:$('momTags').value, link:$('momLink').value, files: momSelected.map(o=> ({ name:o.name, size:o.file.size, type:o.file.type })) };
   set(S.draft,draft); alert('Draft saved locally ✓');
 };
-
-// Post moment
 $('momPost').onclick = async ()=>{
   if(!momSelected.length) return alert('Upload media first');
   const me=await ghMe(); if(!me) return alert('Sign in first');
+  if(await isBanned(me.login)) return alert('You are banned from posting.');
   try{
     const ymd=new Date().toISOString().slice(0,10);
     const isVideo=momSelected.length===1 && momSelected[0].file.type.startsWith('video');
@@ -570,30 +822,26 @@ $('momPost').onclick = async ()=>{
       }
     }
     const meta = {
-      id:`${Date.now()}_${rand()}`,
-      author: me.login,
-      kind: isVideo? 'video' : 'image',
-      media,
-      src: media[0].url, media_url: media[0].url,
+      id:`${Date.now()}_${rand()}`, author: me.login, kind: isVideo? 'video' : 'image',
+      media, src: media[0].url, media_url: media[0].url,
       caption:$('momCaption').value.trim(),
       tags:$('momTags').value.split(',').map(s=>s.trim().replace(/^#/,'')).filter(Boolean),
-      link:$('momLink').value.trim()||null,
-      created_at: nowISO(),
-      likes:0, comments:[]
+      link:$('momLink').value.trim()||null, created_at: nowISO(), likes:0, comments:[]
     };
     await putJson(`moments/${meta.id}.json`, meta, `moment: ${meta.id}`);
-    const cur=await getFile('indexes/moments.json'); let idx=Array.isArray(cur?.json)? cur.json: [];
-    idx=[meta, ...idx.filter(x=>x.id!==meta.id)].slice(0,2000);
+    const cur=await getFile('indexes/moments.json'); let idx=Array.isArray(cur?.json)? cur.json: []; idx=[meta, ...idx.filter(x=>x.id!==meta.id)].slice(0,2000);
     await putJson('indexes/moments.json', idx, `index(moments): add ${meta.id}`);
-    alert('Posted ✓'); resetComposer(); renderMoments(); renderHome(); switchTab('moments');
+    await updateHashtags(meta.tags||[], meta.id);
+    alert('Posted ✓'); resetComposer(); renderMoments(); renderHome(); renderTagsCloud(); switchTab('moments');
   }catch(e){ alert(e.message||String(e)) }
 };
 function safeName(n){ return (n||'file').replace(/[^a-zA-Z0-9._-]/g,'_') }
 
-// ----------------- Stories (multi-upload up to 4) -----------------
+/* ----------------- Stories (multi-upload up to 4) ----------------- */
 $('storyFiles').addEventListener('change', async (e)=>{
   const files=[...(e.target.files||[])].slice(0,4); if(!files.length) return;
   const me=await ghMe(); if(!me) { alert('Sign in first'); e.target.value=''; return }
+  if(await isBanned(me.login)) return alert('You are banned from posting.');
   try{
     const ymd=new Date().toISOString().slice(0,10);
     const added=[];
@@ -601,30 +849,54 @@ $('storyFiles').addEventListener('change', async (e)=>{
       const folder = f.type.startsWith('video')? `media/stories/video/${ymd}` : `media/stories/image/${ymd}`;
       const url = await putFile(`${folder}/${Date.now()}_${rand()}_${safeName(f.name)}`, f, `story media: ${me.login}`);
       const meta = {
-        id:`${Date.now()}_${rand()}`,
-        author: me.login,
+        id:`${Date.now()}_${rand()}`, author: me.login,
         kind: f.type.startsWith('video')? 'video' : 'image',
-        src:url, thumb:url, caption:'New story',
-        created_at: nowISO(),
+        src:url, thumb:url, caption:'New story', created_at: nowISO(),
         expires_at: new Date(Date.now()+48*60*60*1000).toISOString()
       };
       await putJson(`stories/${meta.id}.json`, meta, `story: ${meta.id}`); added.push(meta);
     }
     const cur=await getFile('indexes/stories.json'); let idx=Array.isArray(cur?.json)? cur.json: [];
-    idx=[...added, ...idx].slice(0,3000);
-    await putJson('indexes/stories.json', idx, `index(stories): add ${added.length}`);
+    idx=[...added, ...idx].slice(0,3000); await putJson('indexes/stories.json', idx, `index(stories): add ${added.length}`);
     alert(`Posted ${added.length} stor${added.length>1?'ies':'y'} ✓`); renderStories();
   }catch(e){ alert(e.message||String(e)) }
   e.target.value='';
 });
+$('myStories').onclick = async ()=>{
+  const me=get(S.cfg,{}).gh_login; if(!me) return alert('Sign in first');
+  const modal=$('modal'); modal.classList.remove('hidden');
+  const all=await fetchJson(pagesURL('indexes/stories.json'))||[]; const mine=all.filter(s=> s.author===me);
+  modal.innerHTML=`
+  <div class='max-w-lg w-full rounded-2xl bg-white p-4'>
+    <div class='flex items-center justify-between'><div class='text-xs uppercase tracking-widest text-black/50'>My Stories</div><button class='chip' id='stClose2'>Close</button></div>
+    <div class='mt-3 grid gap-2 max-h-[60vh] overflow-y-auto' id='myStWrap'></div>
+  </div>`;
+  $('stClose2').onclick=()=> modal.classList.add('hidden');
+  const host=$('myStWrap');
+  mine.forEach(s=>{
+    const row=document.createElement('div'); row.className='flex items-center justify-between border rounded px-2 py-1';
+    row.innerHTML=`<div class='flex items-center gap-2'>${s.kind==='image'? `<img src='${s.thumb||s.src}' class='h-10 w-10 rounded object-cover'>`:`<span class='text-xs'>🎬 video</span>`}<div class='text-sm'>${s.caption||''}</div></div><button class='btn' data-delst='${s.id}'>Delete</button>`;
+    host.appendChild(row);
+  });
+  host.querySelectorAll('[data-delst]').forEach(b=> b.onclick = ()=> deleteStory(b.dataset.delst));
+};
+async function deleteStory(id){
+  const me=get(S.cfg,{}).gh_login; if(!me) return;
+  const sf=await getFile(`stories/${id}.json`); const s=sf?.json; if(!s || s.author!==me) return;
+  if(!confirm('Delete this story (and try to remove media)?')) return;
+  await delPath(`stories/${id}.json`, sf.sha, `delete story ${id}`);
+  const cur=await getFile('indexes/stories.json'); let arr=Array.isArray(cur?.json)? cur.json:[]; arr=arr.filter(x=> x.id!==id); await putJson('indexes/stories.json', arr, `index(stories): remove ${id}`);
+  const path=urlToRepoPath(s.src); if(path){ const f=await getFile(path); if(f?.sha){ try{ await delPath(path, f.sha, `delete story media ${id}`) }catch{} } }
+  $('modal').classList.add('hidden'); renderStories();
+}
 
-// ----------------- Stories render/viewer -----------------
+/* ----------------- Stories render/viewer ----------------- */
 function storyChip(s, prof){
   const name=prof?.display_name||s.author||'Story';
   const el=document.createElement('button'); el.className='flex flex-col items-center gap-1';
   el.innerHTML=`<span class='block h-16 w-16 rounded-full border-2 border-fuchsia-400 overflow-hidden'>
       ${s.kind==='image'? `<img src='${s.thumb||s.src}' class='h-full w-full object-cover'>`:`<video src='${s.src}' class='h-full w-full object-cover' muted></video>`}
-    </span><span class='text-[11px] max-w-20 truncate'>${name}</span>`;
+    </span><span class='text-[11px] max-w-20 truncate'>@${name}</span>`;
   el.onclick=()=> openStoryViewer(s); return el;
 }
 async function renderStories(){
@@ -635,13 +907,14 @@ async function renderStories(){
 }
 function openStoryViewer(story){
   const modal=$('modal'); modal.classList.remove('hidden');
+  const canDelete = isMine(story.author);
   modal.innerHTML=`
     <div class='w-full max-w-sm rounded-2xl bg-black text-white overflow-hidden'>
       <div class='story-progress'><div id='stBar'></div></div>
       <div id='stWrap' class='aspect-[9/16] w-full bg-black grid place-items-center'></div>
       <div class='p-3 flex items-center justify-between text-sm'>
         <div id='stMeta' class='truncate'></div>
-        <div class='flex gap-2'><button id='stClose' class='chip bg-white/10'>Close</button></div>
+        <div class='flex gap-2'>${canDelete? `<button id='stDel' class='chip bg-white/10'>Delete</button>`:''}<button id='stClose' class='chip bg-white/10'>Close</button></div>
       </div>
     </div>`;
   const bar=$('stBar'), wrap=$('stWrap'), meta=$('stMeta');
@@ -650,20 +923,21 @@ function openStoryViewer(story){
   meta.textContent=(story.author||'') + (story.caption? ' — '+story.caption:'');
   let t0=Date.now(), dur=7000, timer=setInterval(()=>{ const p=Math.min(1,(Date.now()-t0)/dur); bar.style.width=(p*100)+'%'; if(p>=1){ clearInterval(timer); modal.classList.add('hidden'); }},50);
   $('stClose').onclick=()=>{ clearInterval(timer); modal.classList.add('hidden'); };
+  if($('stDel')) $('stDel').onclick=()=>{ clearInterval(timer); deleteStory(story.id) };
 }
 
-// ----------------- Render all feeds once -----------------
+/* ----------------- Render feeds once ----------------- */
 async function renderFeeds(){ await renderHome(); await renderMoments(); await renderStories(); }
 renderFeeds();
 
-// ----------------- Keyboard nav for reels -----------------
+/* ----------------- Keyboard nav for reels ----------------- */
 document.addEventListener('keydown', (e)=>{
   if($('tab-moments').classList.contains('hidden')) return;
   const host=$('momFeed'); if(e.key.toLowerCase()==='j'){ host.scrollBy({top:host.clientHeight*0.9, behavior:'smooth'}) }
   if(e.key.toLowerCase()==='k'){ host.scrollBy({top:-host.clientHeight*0.9, behavior:'smooth'}) }
 });
 
-// ----------------- Settings modal -----------------
+/* ----------------- Settings modal ----------------- */
 $('openSettings').onclick = ()=>{
   const modal=$('modal'); modal.classList.remove('hidden');
   modal.innerHTML=`
@@ -686,35 +960,40 @@ $('openSettings').onclick = ()=>{
   $('setSave').onclick=async ()=>{ set(S.cfg,{...get(S.cfg,{}), gh_pat:$('ghToken').value.trim()}); modal.classList.add('hidden'); try{ await ensureProfile(); alert('Saved & signed in ✓') }catch(e){ alert(e.message||String(e)) } };
 };
 
-// =====================================================================
-// STUDIO PRO — canvas editor (filters, crop/zoom, rotate, text, emoji)
-// =====================================================================
-const studio = {
-  open:false, index:null, img:null, imgBitmap:null,
-  zoom:1, rot:0, panX:0, panY:0,
-  bright:1, contrast:1, sat:1, hue:0, blur:0,
-  overlays:[], // [{type:'text'|'emoji'|'sticker', x,y,text?,font?,size?}]
-  pointers:new Map()
-};
+/* ----------------- Hashtag index updates ----------------- */
+async function updateHashtags(tags, momentId){
+  if(!tags || !tags.length) return;
+  const cur=(await getFile('indexes/hashtags.json'))?.json || {};
+  const ts=Date.now();
+  tags.forEach(t=>{
+    const k=t.toLowerCase();
+    cur[k]=cur[k]||{ count:0, last:0, moments:[] };
+    cur[k].count += 1;
+    cur[k].last = ts;
+    cur[k].moments = [momentId, ...cur[k].moments.filter(id=> id!==momentId)].slice(0,100);
+  });
+  await putJson('indexes/hashtags.json', cur, `hashtags: +${tags.join(',')}`);
+}
+
+/* =====================================================================
+   STUDIO PRO — canvas editor (filters, crop/zoom, rotate, text, emoji)
+   ===================================================================== */
+const studio = { open:false, index:null, img:null, imgBitmap:null, zoom:1, rot:0, panX:0, panY:0, bright:1, contrast:1, sat:1, hue:0, blur:0, overlays:[], pointers:new Map() };
 const can=$('studioCanvas'); const ctx=can.getContext('2d');
 function fitCanvas(){ const box=can.parentElement.getBoundingClientRect(); can.width=Math.floor(box.width); can.height=Math.floor(box.width*16/9); }
 window.addEventListener('resize', ()=>{ if(studio.open){ fitCanvas(); drawStudio() }});
-function resetStudioState(){
-  studio.zoom=1; studio.rot=0; studio.panX=0; studio.panY=0; studio.bright=1; studio.contrast=1; studio.sat=1; studio.hue=0; studio.blur=0; studio.overlays=[]; studio.pointers.clear();
+function resetStudioState(){ studio.zoom=1; studio.rot=0; studio.panX=0; studio.panY=0; studio.bright=1; studio.contrast=1; studio.sat=1; studio.hue=0; studio.blur=0; studio.overlays=[]; studio.pointers.clear();
   ['stZoom','stRotate','stPanX','stPanY','stBright','stContrast','stSat','stHue','stBlur'].forEach(id=> $(id).value=$(id).defaultValue);
 }
 async function openStudioWithFile(idx){
   const obj=momSelected[idx]; if(!obj || !obj.file || !obj.file.type.startsWith('image')) return alert('Pick an image to edit');
-  studio.index=idx; studio.open=true; $('studio').classList.remove('hidden');
-  fitCanvas(); resetStudioState();
-  studio.img = await createImageBitmap(obj.file);
-  studio.imgBitmap = studio.img;
-  drawStudio();
+  studio.index=idx; studio.open=true; $('studio').classList.remove('hidden'); fitCanvas(); resetStudioState();
+  studio.img = await createImageBitmap(obj.file); studio.imgBitmap = studio.img; drawStudio();
 }
-// pinch zoom / pan
+$('openStudio').onclick = ()=>{ if(!momSelected.length || !momSelected[0].file.type.startsWith('image')) return alert('Select an image'); openStudioWithFile(0) };
 can.addEventListener('pointerdown', (e)=>{ if(!studio.open) return; can.setPointerCapture(e.pointerId); studio.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}); });
-can.addEventListener('pointerup', (e)=>{ studio.pointers.delete(e.pointerId) });
-can.addEventListener('pointercancel', (e)=>{ studio.pointers.delete(e.pointerId) });
+can.addEventListener('pointerup', (e)=> studio.pointers.delete(e.pointerId));
+can.addEventListener('pointercancel', (e)=> studio.pointers.delete(e.pointerId));
 can.addEventListener('pointermove', (e)=>{
   if(!studio.open || studio.pointers.size===0) return;
   const prev=studio.pointers.get(e.pointerId); if(!prev) return;
@@ -722,85 +1001,37 @@ can.addEventListener('pointermove', (e)=>{
   if(studio.pointers.size===1){ studio.panX += dx; studio.panY += dy; $('stPanX').value=studio.panX; $('stPanY').value=studio.panY; drawStudio(); }
   if(studio.pointers.size===2){
     const pts=[...studio.pointers.values()];
-    const d=(a,b)=> Math.hypot(a.x-b.x, a.y-b.y);
-    // compute scale change
-    const [p1,p2]=pts; const before=d(p1,{x:p1.x-dx,y:p1.y-dy}); const after=d(p1,p2);
-    if(before>0){ const s=after/before; studio.zoom = clamp(studio.zoom*s, 0.5, 3); $('stZoom').value=studio.zoom; drawStudio(); }
+    const [p1,p2]=pts; const before=Math.hypot(p1.x-prev.x, p1.y-prev.y); const after=Math.hypot(p1.x-p2.x, p1.y-p2.y);
+    if(before>0){ studio.zoom = clamp(studio.zoom*(after/Math.max(1, before)), 0.5, 3); $('stZoom').value=studio.zoom; drawStudio(); }
   }
 });
 ['stZoom','stRotate','stPanX','stPanY','stBright','stContrast','stSat','stHue','stBlur'].forEach(id=>{
-  $(id).addEventListener('input', ()=>{
-    studio.zoom=+$('stZoom').value; studio.rot=+$('stRotate').value;
-    studio.panX=+$('stPanX').value; studio.panY=+$('stPanY').value;
-    studio.bright=+$('stBright').value; studio.contrast=+$('stContrast').value;
-    studio.sat=+$('stSat').value; studio.hue=+$('stHue').value; studio.blur=+$('stBlur').value;
-    drawStudio();
-  });
+  $(id).addEventListener('input', ()=>{ studio.zoom=+$('stZoom').value; studio.rot=+$('stRotate').value; studio.panX=+$('stPanX').value; studio.panY=+$('stPanY').value; studio.bright=+$('stBright').value; studio.contrast=+$('stContrast').value; studio.sat=+$('stSat').value; studio.hue=+$('stHue').value; studio.blur=+$('stBlur').value; drawStudio(); });
 });
 $('stAddText').onclick = ()=>{ studio.overlays.push({type:'text', x:can.width/2, y:can.height/2, text:'Your text', size:28, font:'600 28px sans-serif'}); drawStudio(); };
 $('stAddEmoji').onclick = ()=>{ studio.overlays.push({type:'emoji', x:can.width/2, y:can.height/2, text:'🎉', size:48}); drawStudio(); };
 $('stAddSticker').onclick = ()=>{ studio.overlays.push({type:'sticker', x:can.width/2, y:can.height/2, text:'NEW', size:32, font:'700 32px sans-serif'}); drawStudio(); };
-
 let dragIdx=-1;
-can.addEventListener('mousedown', (e)=>{
-  const rect=can.getBoundingClientRect(); const x=e.clientX-rect.left, y=e.clientY-rect.top;
-  dragIdx=studio.overlays.findIndex(o=> Math.hypot(o.x-x, o.y-y) < (o.size||30));
-});
-can.addEventListener('mousemove', (e)=>{
-  if(dragIdx<0) return;
-  const rect=can.getBoundingClientRect(); const x=e.clientX-rect.left, y=e.clientY-rect.top;
-  studio.overlays[dragIdx].x=x; studio.overlays[dragIdx].y=y; drawStudio();
-});
+can.addEventListener('mousedown', (e)=>{ const r=can.getBoundingClientRect(); const x=e.clientX-r.left, y=e.clientY-r.top; dragIdx=studio.overlays.findIndex(o=> Math.hypot(o.x-x, o.y-y) < (o.size||30)); });
+can.addEventListener('mousemove', (e)=>{ if(dragIdx<0) return; const r=can.getBoundingClientRect(); const x=e.clientX-r.left, y=e.clientY-r.top; studio.overlays[dragIdx].x=x; studio.overlays[dragIdx].y=y; drawStudio(); });
 window.addEventListener('mouseup', ()=> dragIdx=-1);
-can.addEventListener('dblclick', (e)=>{
-  const rect=can.getBoundingClientRect(); const x=e.clientX-rect.left, y=e.clientY-rect.top;
-  const i=studio.overlays.findIndex(o=> Math.hypot(o.x-x, o.y-y) < (o.size||30));
-  if(i>=0 && studio.overlays[i].type==='text'){ const t=prompt('Edit text', studio.overlays[i].text||''); if(t!=null){ studio.overlays[i].text=t; drawStudio() } }
-});
+can.addEventListener('dblclick', (e)=>{ const r=can.getBoundingClientRect(); const x=e.clientX-r.left, y=e.clientY-r.top; const i=studio.overlays.findIndex(o=> Math.hypot(o.x-x, o.y-y) < (o.size||30)); if(i>=0 && studio.overlays[i].type==='text'){ const t=prompt('Edit text', studio.overlays[i].text||''); if(t!=null){ studio.overlays[i].text=t; drawStudio() } } });
 window.addEventListener('keydown', (e)=>{ if(e.key==='Delete' && dragIdx>=0){ studio.overlays.splice(dragIdx,1); dragIdx=-1; drawStudio(); } });
-
 function drawStudio(){
   if(!studio.imgBitmap) return;
-  ctx.save();
-  ctx.clearRect(0,0,can.width,can.height);
+  ctx.save(); ctx.clearRect(0,0,can.width,can.height);
   ctx.filter = `brightness(${studio.bright}) contrast(${studio.contrast}) saturate(${studio.sat}) hue-rotate(${studio.hue}deg) blur(${studio.blur}px)`;
-  ctx.translate(can.width/2 + studio.panX, can.height/2 + studio.panY);
-  ctx.rotate(studio.rot * Math.PI/180);
-  const scale = studio.zoom;
-  const w = studio.imgBitmap.width * scale;
-  const h = studio.imgBitmap.height * scale;
-  ctx.drawImage(studio.imgBitmap, -w/2, -h/2, w, h);
-  ctx.restore();
-  // overlays
-  studio.overlays.forEach(o=>{
-    ctx.save();
-    ctx.font = o.font || `${o.size||32}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillStyle='white'; ctx.strokeStyle='black'; ctx.lineWidth=4;
-    ctx.strokeText(o.text, o.x, o.y); ctx.fillText(o.text, o.x, o.y);
-    ctx.restore();
-  });
+  ctx.translate(can.width/2 + studio.panX, can.height/2 + studio.panY); ctx.rotate(studio.rot * Math.PI/180);
+  const w = studio.imgBitmap.width * studio.zoom; const h = studio.imgBitmap.height * studio.zoom;
+  ctx.drawImage(studio.imgBitmap, -w/2, -h/2, w, h); ctx.restore();
+  studio.overlays.forEach(o=>{ ctx.save(); ctx.font = o.font || `${o.size||32}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='white'; ctx.strokeStyle='black'; ctx.lineWidth=4; ctx.strokeText(o.text, o.x, o.y); ctx.fillText(o.text, o.x, o.y); ctx.restore(); });
 }
 $('studioClose').onclick = ()=>{ $('studio').classList.add('hidden'); studio.open=false; };
-$('studioExport').onclick = async ()=>{
-  if(studio.index==null) return;
-  const blob = await new Promise(res=> can.toBlob(res, 'image/jpeg', 0.9));
-  const file = new File([blob], `edited_${Date.now()}.jpg`, { type:'image/jpeg' });
-  momSelected[studio.index] = { file, name:file.name, edited:true };
-  $('studio').classList.add('hidden'); studio.open=false; drawThumbs();
-};
+$('studioExport').onclick = async ()=>{ if(studio.index==null) return; const blob = await new Promise(res=> can.toBlob(res, 'image/jpeg', 0.9)); const file = new File([blob], `edited_${Date.now()}.jpg`, { type:'image/jpeg' }); momSelected[studio.index] = { file, name:file.name, edited:true }; $('studio').classList.add('hidden'); studio.open=false; drawThumbs(); };
 
-// ----------------- Stories / Moments list refreshers -----------------
-async function renderStories(){ // already defined above; ensure single def
-  const row=$('storiesRow'); if(!row) return; row.innerHTML='';
-  const all=await fetchJson(pagesURL('indexes/stories.json'))||[]; const active=all.filter(s=> !s.expires_at || new Date(s.expires_at).getTime()>Date.now());
-  if(!active.length){ row.innerHTML=`<div class="text-xs text-black/60">No active stories</div>`; return }
-  const map=await pmap(); active.forEach(s=> row.appendChild(storyChip(s, map[s.author])));
-}
-
-// ----------------- Initial -----------------
+/* ----------------- Feeds bootstrap + debounced renders ----------------- */
 function deb(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms) } }
-const safeRenderFeeds = deb(renderFeeds, 50); // guard any fast re-calls
+const safeRenderFeeds = deb(renderFeeds, 50);
 safeRenderFeeds();
 </script>
 </body>
