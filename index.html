@@ -1034,5 +1034,101 @@ Options: MTN ${settings.mtn||'-'}, Airtel ${settings.airtel||'-'}${settings.payp
   }
 })();
 </script>
+<script>
+// ======================================================
+// STORIES → Mirror to public site (https://hunter9201.github.io/moments/)
+// Writes story files to data repo and updates indexes/stories.json in BOTH
+// repos so the public site reflects uploads immediately.
+// ======================================================
+(function(){
+  if(window.__MH_STORY_MIRROR_PATCHED__) return; window.__MH_STORY_MIRROR_PATCHED__=true;
+  const DATA = { owner:'hunter9201', repo:'momentshub-data' };            // media + per-story json
+  const MIRROR = { owner:'hunter9201', repo:'moments', pages:'https://hunter9201.github.io/moments' }; // public site
+  const CFG_KEY = 'mh:cfg';
+  const S = { cfg: CFG_KEY, stories:'mh:stories' };
+
+  function get(k,d){ try{ const v=JSON.parse(localStorage.getItem(k)); return v ?? d }catch{ return d } }
+  function set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)) }catch{} }
+  function token(){ return (get(S.cfg,{}).gh_pat||'').trim() }
+  function b64e(s){ return btoa(unescape(encodeURIComponent(s))) }
+  function b64d(s){ try{ return decodeURIComponent(escape(atob(s.replace(/
+/g,'')))) }catch{ return atob(s.replace(/
+/g,'')) } }
+  async function api(path, opts={}){ const h={'Accept':'application/vnd.github+json'}; const t=token(); if(t) h['Authorization']=`token ${t}`; const r=await fetch(`https://api.github.com${path}`,{...opts,headers:{...h,...(opts.headers||{})}}); if(!r.ok) throw new Error(`${opts.method||'GET'} ${path} → ${r.status}`); return r.json(); }
+  async function defaultBranch(owner,repo){ const ck=`mh:branch:${owner}/${repo}`; const cached=localStorage.getItem(ck); if(cached) return cached; const j=await api(`/repos/${owner}/${repo}`); const b=j.default_branch||'main'; localStorage.setItem(ck,b); return b; }
+  async function getFile(owner,repo,branch,path){ try{ const j=await api(`/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`); if(j && j.content){ const text=b64d(j.content); return { sha:j.sha, text, json: JSON.parse(text) } } return { sha:j.sha, text:null, json:null } }catch(e){ if(String(e).includes('404')) return null; throw e } }
+  async function putJson(owner,repo,branch,path,obj,msg){ const cur=await getFile(owner,repo,branch,path); const body={ message: msg||`update ${path}`, content: b64e(JSON.stringify(obj,null,2)), branch }; if(cur && cur.sha) body.sha=cur.sha; await api(`/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`, { method:'PUT', body: JSON.stringify(body) }); }
+  async function ghLogin(){ try{ if(get(S.cfg,{}).gh_login) return get(S.cfg,{}).gh_login; const t=token(); if(!t) return 'anon'; const r=await fetch('https://api.github.com/user',{headers:{'Authorization':`token ${t}`}}); if(!r.ok) return 'anon'; const j=await r.json(); set(S.cfg,{...get(S.cfg,{}), gh_login:j.login}); return j.login||'anon'; }catch{ return 'anon' } }
+
+  // Core: write per-story json to DATA repo and update indexes in both repos
+  async function commitStory(meta){
+    const dataBranch = await defaultBranch(DATA.owner, DATA.repo);
+    const mirrorBranch = await defaultBranch(MIRROR.owner, MIRROR.repo);
+    // per-story file
+    await putJson(DATA.owner, DATA.repo, dataBranch, `stories/${meta.id}.json`, meta, `story: ${meta.id}`);
+    // update DATA index
+    const dataIdxPath = 'indexes/stories.json';
+    let didx = []; const dcur = await getFile(DATA.owner, DATA.repo, dataBranch, dataIdxPath); if(dcur && Array.isArray(dcur.json)) didx = dcur.json;
+    didx = [metaIndex(meta), ...didx.filter(x=>x.id!==meta.id)]; if(didx.length>2000) didx = didx.slice(0,2000);
+    await putJson(DATA.owner, DATA.repo, dataBranch, dataIdxPath, didx, `index(stories): add ${meta.id}`);
+    // update MIRROR index (public site)
+    const mIdxPath = 'indexes/stories.json';
+    let midx = []; const mcur = await getFile(MIRROR.owner, MIRROR.repo, mirrorBranch, mIdxPath); if(mcur && Array.isArray(mcur.json)) midx = mcur.json;
+    midx = [metaIndex(meta), ...midx.filter(x=>x.id!==meta.id)];
+    // prune expired in mirror (only keep active for public site)
+    const now = Date.now(); midx = midx.filter(x=> !x.expires_at || (new Date(x.expires_at).getTime() > now));
+    if(midx.length>1000) midx = midx.slice(0,1000);
+    await putJson(MIRROR.owner, MIRROR.repo, mirrorBranch, mIdxPath, midx, `index(stories): add ${meta.id}`);
+  }
+  function metaIndex(meta){ return { id:meta.id, author:meta.author, kind:meta.kind, src:meta.src, thumb:meta.thumb||meta.src, caption:meta.caption||'', created_at:meta.created_at, expires_at:meta.expires_at } }
+
+  // Intercept the file picker change (capture phase) to own the story flow
+  const input = document.getElementById('storyFile');
+  if(input){
+    input.addEventListener('change', async (e)=>{
+      if(!e.target.files || !e.target.files[0]) return; // nothing chosen
+      e.stopImmediatePropagation(); // prevent earlier handlers from double-posting
+      const f = e.target.files[0];
+      try{
+        // Ensure media is uploaded to the data repo already (the app has ensureRepoUrlFromFile)
+        const url = await (window.ensureRepoUrlFromFile ? ensureRepoUrlFromFile(f, f.type.startsWith('video')?'stories/video':'stories/image') : Promise.reject(new Error('Uploader missing')));
+        const author = await ghLogin();
+        const id = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+        const created_at = new Date().toISOString();
+        const expires_at = new Date(Date.now() + 48*60*60*1000).toISOString();
+        const meta = { id, author, kind:f.type.startsWith('video')?'video':'image', src:url, thumb:url, caption:'New story', created_at, expires_at };
+        await commitStory(meta);
+        // local echo so UI updates instantly
+        const list = get(S.stories,[]); list.unshift({ ...meta }); set(S.stories, list);
+        if(window.renderStories) try{ await window.renderStories(); }catch{}
+        alert('Story posted ✓ — mirrored to public site');
+        e.target.value='';
+      }catch(err){ console.error(err); alert('Story upload failed: '+(err.message||String(err))) }
+    }, true);
+  }
+
+  // Override renderStories to read from public site index (falls back to data repo)
+  window.renderStories = async function(){
+    const row = document.getElementById('momStoriesRow'); if(!row) return;
+    row.innerHTML='';
+    async function readIndex(url){ try{ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) return []; const j=await r.json(); return Array.isArray(j)? j:[] }catch{ return [] } }
+    const primary = await readIndex(`${MIRROR.pages}/indexes/stories.json`);
+    const fallback = await readIndex(`https://hunter9201.github.io/momentshub-data/indexes/stories.json`);
+    const arr = (primary.length? primary : fallback).filter(s=> !s.expires_at || new Date(s.expires_at).getTime() > Date.now());
+    arr.forEach((s,idx)=>{
+      const b = document.createElement('button'); b.className='flex flex-col items-center gap-1';
+      b.innerHTML = `<span class='block h-16 w-16 rounded-full border-2 border-fuchsia-400 overflow-hidden'>${s.kind==='image'? `<img src='${s.thumb||s.src}' class='h-full w-full object-cover'>`:`<video src='${s.src}' class='h-full w-full object-cover' muted></video>`}</span><span class='text-[11px] max-w-20 truncate'>${s.author||'Story'}</span>`;
+      b.onclick = ()=> openStory(idx);
+      row.appendChild(b);
+    });
+    if(arr.length===0){ row.innerHTML = `<div class='text-xs text-black/60'>No active stories (yet)</div>` }
+    // reuse existing openStory() which draws from local; store arr into local first
+    set(S.stories, arr);
+  };
+
+  // Initial render
+  try{ window.renderStories(); }catch{}
+})();
+</script>
 </body>
 </html>
