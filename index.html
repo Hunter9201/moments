@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Moments Hub — Life Super‑App + Moments</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <style>
+    html,body{height:100%}
+    .radial-bg{background-image:radial-gradient(1200px 600px at 20% -10%, rgba(59,130,246,.10), transparent), radial-gradient(900px 400px at 90% -10%, rgba(217,70,239,.10), transparent)}
+    .card{box-shadow:0 10px 30px rgba(2,6,23,.06)}
+    .mom-feed{scroll-snap-type:y mandatory; overflow-y:auto; max-height:85vh}
+    .mom-item{scroll-snap-align:center}
+    .chip{font-size:.7rem;padding:.2rem .5rem;border-radius:999px;background:rgba(0,0,0,.08)}
+  </style>
+</head>
+<body class="min-h-screen radial-bg text-slate-900">
+  <!-- Header -->
+  <header class="sticky top-0 z-40 border-b border-black/10 bg-white/80 backdrop-blur">
+    <div class="mx-auto max-w-7xl px-4 py-3">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="h-9 w-9 animate-[spin_9s_linear_infinite] rounded-xl bg-gradient-to-br from-sky-300 via-fuchsia-300 to-amber-300"></div>
+          <div>
+            <div class="text-xs uppercase tracking-widest text-black/60">Moments Hub</div>
+            <div class="text-lg font-extrabold leading-5">Life Super‑App</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <input id="search" placeholder="Search feed / moments / library…" class="w-64 max-w-[70vw] rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm shadow-sm outline-none placeholder:text-black/40 focus:border-black/20 focus:ring-2 focus:ring-black/10" />
+          <button id="openSettings" class="rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold shadow-sm">⚙ Settings</button>
+        </div>
+      </div>
+      <nav class="mt-3 flex flex-wrap gap-2">
+        <button data-tab="feed" class="tab-btn rounded-full bg-white px-3 py-1 text-xs font-semibold shadow">Feed</button>
+        <button data-tab="moments" class="tab-btn rounded-full px-3 py-1 text-xs font-semibold text-black/70">Moments</button>
+        <button data-tab="chat" class="tab-btn rounded-full px-3 py-1 text-xs font-semibold text-black/70">Communication</button>
+        <button data-tab="ent" class="tab-btn rounded-full px-3 py-1 text-xs font-semibold text-black/70">Entertainment</button>
+        <button data-tab="tour" class="tab-btn rounded-full px-3 py-1 text-xs font-semibold text-black/70">Tourism</button>
+        <button data-tab="pay" class="tab-btn rounded-full px-3 py-1 text-xs font-semibold text-black/70">Payments</button>
+        <button data-tab="ess" class="tab-btn rounded-full px-3 py-1 text-xs font-semibold text-black/70">Essentials</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 py-6 space-y-8">
+    <!-- FEED (classic cards) -->
+    <section id="tab-feed" class="space-y-6">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" id="feed"></div>
+    </section>
+
+    <!-- MOMENTS (TikTok/Instagram style) -->
+    <section id="tab-moments" class="hidden space-y-4">
+      <!-- Stories Row -->
+      <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
+        <div class="flex items-center justify-between">
+          <div class="text-xs uppercase tracking-widest text-black/50">Stories</div>
+          <label class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm cursor-pointer">➕ Add Story <input id="storyFile" type="file" accept="video/*,image/*" class="hidden"></label>
+        </div>
+        <div id="momStoriesRow" class="mt-3 flex gap-3 overflow-x-auto pb-2"></div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <!-- Composer -->
+        <div class="order-2 lg:order-1 lg:col-span-1 rounded-2xl border border-black/10 bg-white/80 p-4 card h-max">
+          <div class="text-xs uppercase tracking-widest text-black/50">Create a Moment</div>
+          <div class="mt-3 grid gap-2 text-sm">
+            <label class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 shadow-sm cursor-pointer">📤 Upload video/image<input id="momFile" type="file" accept="video/*,image/*" class="hidden"></label>
+            <input id="momCaption" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Caption (what's happening?)" />
+            <input id="momTags" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="#tags (comma separated)" />
+            <input id="momLink" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Optional link (https://)" />
+            <button id="momPost" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Post Moment</button>
+            <small class="text-black/50">Media stays on your device (local URL). To share publicly, host your file and paste the link.</small>
+          </div>
+        </div>
+
+        <!-- Vertical Feed -->
+        <div class="order-1 lg:order-2 lg:col-span-2 rounded-2xl border border-black/10 bg-white/80 p-0 card">
+          <div class="flex items-center justify-between p-4">
+            <div class="text-xs uppercase tracking-widest text-black/50">For You</div>
+            <div class="flex items-center gap-2 text-xs"><span class="chip">Swipe / Scroll</span><span class="chip">J/K = Next/Prev</span></div>
+          </div>
+          <div id="momFeed" class="mom-feed px-3 pb-4 space-y-4"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMMUNICATION -->
+    <section id="tab-chat" class="hidden space-y-6">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div class="md:col-span-2 rounded-2xl border border-black/10 bg-white/80 p-4 card">
+          <div class="text-xs uppercase tracking-widest text-black/50">In‑App Chat (local)</div>
+          <div id="chatLog" class="mt-3 h-72 overflow-y-auto rounded-xl border border-black/5 bg-white/70 p-3 text-sm"></div>
+          <div class="mt-3 flex gap-2">
+            <input id="chatMsg" class="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10" placeholder="Type a message…" />
+            <button id="chatSend" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm font-semibold shadow-sm">Send</button>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
+          <div class="text-xs uppercase tracking-widest text-black/50">Quick Contacts</div>
+          <div class="mt-3 grid gap-2 text-sm">
+            <input id="cfgWhatsApp" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="WhatsApp number e.g., 2567XXXXXXX" />
+            <input id="cfgEmail" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Business email" />
+            <input id="cfgPhone" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Phone (for calls)" />
+            <div class="flex flex-wrap gap-2 pt-1">
+              <a id="waBtn" target="_blank" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">WhatsApp</a>
+              <a id="emBtn" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Email</a>
+              <a id="callBtn" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Call</a>
+            </div>
+            <small class="text-black/50">Tip: Save above once; buttons update automatically.</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ENTERTAINMENT -->
+    <section id="tab-ent" class="hidden space-y-6">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
+          <div class="text-xs uppercase tracking-widest text-black/50">Video Playlist</div>
+          <video id="vidPlayer" class="mt-3 aspect-video w-full rounded-xl bg-black" controls poster="https://images.unsplash.com/photo-1512864081405-39f3f94a9155?q=80&w=1600&auto=format&fit=crop"></video>
+          <div id="vidList" class="mt-3 grid grid-cols-1 gap-2 text-sm"></div>
+        </div>
+        <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
+          <div class="text-xs uppercase tracking-widest text-black/50">Audio Player</div>
+          <audio id="audPlayer" class="mt-3 w-full" controls></audio>
+          <div id="audList" class="mt-3 grid grid-cols-1 gap-2 text-sm"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOURISM -->
+    <section id="tab-tour" class="hidden space-y-4">
+      <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
+        <div class="text-xs uppercase tracking-widest text-black/50">Nearby & Highlights</div>
+        <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          <button data-filter="all" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 shadow-sm">All</button>
+          <button data-filter="food" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 shadow-sm">Food</button>
+          <button data-filter="hotel" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 shadow-sm">Hotels</button>
+          <button data-filter="fun" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 shadow-sm">Attractions</button>
+          <button id="useGPS" class="ml-auto rounded-full border border-black/10 bg-white/80 px-3 py-1 shadow-sm">📍 Use my location</button>
+        </div>
+        <div id="map" class="mt-3 h-80 w-full rounded-xl border border-black/10"></div>
+        <div id="placeList" class="mt-3 grid grid-cols-1 gap-2 text-sm"></div>
+      </div>
+    </section>
+
+    <!-- PAYMENTS -->
+    <section id="tab-pay" class="hidden space-y-6">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div class="md:col-span-1 rounded-2xl border border-black/10 bg-white/80 p-4 card">
+          <div class="text-xs uppercase tracking-widest text-black/50">Payment Settings</div>
+          <div class="mt-3 grid grid-cols-1 gap-2 text-sm">
+            <input id="ps-business" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Business name" />
+            <input id="ps-mtn" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="MTN MoMo number" />
+            <input id="ps-airtel" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Airtel Money number" />
+            <input id="ps-paypal" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="PayPal.me link (optional)" />
+            <input id="ps-currency" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Currency symbol (e.g., UGX, $)" />
+            <button id="ps-save" class="mt-1 rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Save</button>
+            <small class="text-black/50">Stores locally in your browser.</small>
+          </div>
+        </div>
+        <div class="md:col-span-2 rounded-2xl border border-black/10 bg-white/80 p-4 card">
+          <div class="text-xs uppercase tracking-widest text-black/50">Create Payment Request</div>
+          <div class="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
+            <input id="pr-name" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Customer name" />
+            <input id="pr-phone" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="WhatsApp phone (for share)" />
+            <input id="pr-reason" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 md:col-span-2" placeholder="Reason (e.g., Laundry package, Deposit, Booking)" />
+            <div class="grid grid-cols-2 gap-2">
+              <input id="pr-amount" type="number" step="0.01" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Amount" />
+              <input id="pr-ref" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Reference (auto)" />
+            </div>
+          </div>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button id="pr-make" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Create</button>
+            <button id="pr-share-wa" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Share via WhatsApp</button>
+            <button id="pr-copy" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Copy details</button>
+          </div>
+          <div id="pr-out" class="mt-3 text-sm"></div>
+        </div>
+      </div>
+      <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
+        <div class="text-xs uppercase tracking-widest text-black/50">Requests & Payments</div>
+        <div id="payList" class="mt-3 grid grid-cols-1 gap-2 text-sm"></div>
+      </div>
+    </section>
+
+    <!-- ESSENTIALS -->
+    <section id="tab-ess" class="hidden space-y-6">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
+          <div class="text-xs uppercase tracking-widest text-black/50">To‑Dos</div>
+          <div class="mt-3 flex gap-2">
+            <input id="td-text" class="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="What needs to be done?" />
+            <button id="td-add" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm font-semibold shadow-sm">Add</button>
+          </div>
+          <div id="td-list" class="mt-3 space-y-2"></div>
+        </div>
+        <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
+          <div class="text-xs uppercase tracking-widest text-black/50">Notes</div>
+          <textarea id="notes" rows="10" class="mt-3 w-full rounded-xl border border-black/10 bg-white/80 p-3 text-sm" placeholder="Ideas, plans, reminders…"></textarea>
+          <div class="mt-2 text-right">
+            <button id="notesSave" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Save</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="mt-6 grid place-items-center pb-16 text-center text-xs text-black/60">
+    <div>Private & local (no servers). Add your links, numbers, and places — then share.</div>
+  </footer>
+
+  <!-- Modal for feed/media & stories -->
+  <div id="modal" class="hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"></div>
+
+  <script>
+    // ————————————————————————————————————————————————
+    // STORAGE HELPERS
+    // ————————————————————————————————————————————————
+    const S = {
+      cfg: 'mh:cfg', chat: 'mh:chat', todos: 'mh:todos', notes: 'mh:notes',
+      pay: 'mh:pay', vid: 'mh:vid', aud: 'mh:aud',
+      moments: 'mh:moments', stories: 'mh:stories'
+    }
+    const get = (k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch{return d}}
+    const set = (k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+    const byId = (id)=>document.getElementById(id)
+    const randomId = ()=> Math.random().toString(36).slice(2,9)
+
+    // ————————————————————————————————————————————————
+    // NAV / TABS
+    // ————————————————————————————————————————————————
+    const tabs = ['feed','moments','chat','ent','tour','pay','ess']
+    function switchTab(t){ tabs.forEach(k=> byId(`tab-${k}`).classList.toggle('hidden', k!==t)) }
+    document.querySelectorAll('.tab-btn').forEach(b=> b.addEventListener('click', ()=> switchTab(b.dataset.tab)))
+
+    // ————————————————————————————————————————————————
+    // FEED (Classic cards)
+    // ————————————————————————————————————————————————
+    const items = [
+      { id: 'orji-laundry-hack', brand: 'Orji Supplies Laundry', tag: 'Hacks', kind: 'video', title: 'Smart Laundry Hack: 3 steps for brighter whites', subtitle: 'A 20-second mini-show', thumb: 'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?q=80&w=1600&auto=format&fit=crop', src: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4', actionText: 'Try the trick', href: 'https://orjisupplies.store/' },
+      { id: 'flair-car-showcase', brand: 'Flair Car Accessories', tag: 'Showcase', kind: 'video', title: 'Before/After: 15s car interior glow-up', subtitle: 'Tap to reveal the setup', thumb: 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1600&auto=format&fit=crop', src: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', actionText: 'See the setup', href: 'https://example.com/flair' },
+      { id: 'kibiina-mini', brand: 'Kibiina – Savings & Loans', tag: 'Stories', kind: 'image', title: 'How 20 members grew a fund in 90 days', subtitle: 'Swipe the snapshots', thumb: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?q=80&w=1600&auto=format&fit=crop', src: 'https://images.unsplash.com/photo-1549421263-3f9d1a6b8798?q=80&w=2400&auto=format&fit=crop', actionText: 'Join the circle', href: 'https://example.com/kibiina' },
+      { id: 'lionhunter-class', brand: 'Lion Hunter (LDC Hub)', tag: 'Lessons', kind: 'video', title: '60s Case Capsule: Jaffer Brothers v Bagalaliwo', subtitle: 'Tap for the crisp summary', thumb: 'https://images.unsplash.com/photo-1555375771-14b5b4b4688b?q=80&w=1600&auto=format&fit=crop', src: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', actionText: 'Explore notes', href: 'https://ldclionhunter.com/' }
+    ]
+    const feed = byId('feed');
+    const modal = byId('modal');
+
+    function renderCard(item){
+      const card = document.createElement('div');
+      card.className = 'group relative overflow-hidden rounded-2xl border bg-white shadow p-3';
+      card.innerHTML = `
+        <div class="flex gap-3">
+          <div class="w-36 shrink-0 overflow-hidden rounded-xl">
+            ${item.kind==='video' ? `<video class='h-24 w-full object-cover' src='${item.src}' poster='${item.thumb}' muted loop playsinline></video>` : `<img class='h-24 w-full object-cover' src='${item.thumb}' alt='${item.title}'/>`}
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <span class="inline-flex items-center rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-white shadow-sm">${item.tag}</span>
+              <button class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm" data-add-moment='${item.id}'>→ Add to Moments</button>
+            </div>
+            <h3 class="mt-1 text-base font-bold">${item.title}</h3>
+            <p class="text-sm text-black/70">${item.subtitle}</p>
+            <div class="mt-3 flex items-center gap-2">
+              <button data-open='${item.id}' class="rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm font-semibold shadow-sm">Open</button>
+              <a href="${item.href}" target="_blank" class="rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm font-semibold shadow-sm">${item.actionText}</a>
+            </div>
+          </div>
+        </div>`;
+      feed.appendChild(card);
+    }
+
+    function openModal(item){
+      modal.classList.remove('hidden');
+      modal.innerHTML = `
+        <div class="max-w-2xl rounded-2xl bg-white p-4 shadow-lg">
+          <div class="mb-3 flex justify-between">
+            <span class="inline-flex items-center rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-white shadow-sm">${item.tag||'Moment'}</span>
+            <button onclick="document.getElementById('modal').classList.add('hidden')" class="rounded bg-black/10 px-2 py-1 text-xs">Close</button>
+          </div>
+          ${item.kind==='video' ? `<video class='h-56 w-full rounded-lg object-cover' src='${item.src}' poster='${item.thumb||''}' controls autoplay muted playsinline></video>` : `<img class='h-56 w-full rounded-lg object-cover' src='${item.src}' alt='${item.title||''}'/>`}
+          <h2 class="mt-2 text-xl font-bold">${item.title||item.caption||''}</h2>
+          <p class="text-sm text-black/70">${item.subtitle||item.tags?.map(t=>'#'+t).join(' ')||''}</p>
+          ${item.href? `<div class='mt-3'><a href='${item.href}' target='_blank' class='rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm font-semibold shadow-sm'>Open link</a></div>`:''}
+        </div>`
+    }
+
+    items.forEach(renderCard)
+    document.addEventListener('click', (e)=>{
+      const openBtn = e.target.closest('[data-open]');
+      if(openBtn){ const it = items.find(x=>x.id===openBtn.dataset.open); if(it) openModal(it) }
+      const addBtn = e.target.closest('[data-add-moment]');
+      if(addBtn){ const it = items.find(x=>x.id===addBtn.dataset.addMoment); if(it){ addMoment({kind:it.kind, src:it.src, thumb:it.thumb, caption:it.title, tags:[it.tag], link:it.href}) } }
+    })
+
+    // Feed search
+    byId('search').addEventListener('input', (e)=>{
+      const q = e.target.value.toLowerCase().trim()
+      // Filter Feed
+      Array.from(feed.children).forEach(c=> c.style.display = c.textContent.toLowerCase().includes(q) ? '' : 'none')
+      // Filter Moments
+      Array.from(byId('momFeed').children).forEach(c=> c.style.display = c.dataset.searchable?.includes(q) ? '' : 'none')
+    })
+
+    // ————————————————————————————————————————————————
+    // MOMENTS (Reels/TikTok‑style)
+    // ————————————————————————————————————————————————
+    const MOM_KEY = S.moments
+    const STO_KEY = S.stories
+
+    // Seed on first run
+    ;(()=>{
+      if(get(MOM_KEY,null)===null){
+        set(MOM_KEY,[
+          {id:randomId(), kind:'video', src:items[0].src, thumb:items[0].thumb, caption:'Laundry hack in 20s', tags:['Hacks','Laundry'], author:'Orji', created:Date.now(), likes:12, liked:false, comments:[]},
+          {id:randomId(), kind:'video', src:items[1].src, thumb:items[1].thumb, caption:'Car glow‑up before/after', tags:['Showcase','Auto'], author:'Flair', created:Date.now(), likes:5, liked:false, comments:[]},
+          {id:randomId(), kind:'image', src:items[2].src, thumb:items[2].thumb, caption:'Savings circle wins', tags:['Kibiina','Stories'], author:'Kibiina', created:Date.now(), likes:8, liked:false, comments:[]}
+        ])
+      }
+      if(get(STO_KEY,null)===null){
+        set(STO_KEY,[
+          {id:randomId(), kind:'image', src:items[2].thumb, thumb:items[2].thumb, caption:'Goal reached! 🎉', author:'Kibiina', created:Date.now(), duration:7},
+          {id:randomId(), kind:'image', src:items[3].thumb, thumb:items[3].thumb, caption:'Case notes drop', author:'Lion Hunter', created:Date.now(), duration:7}
+        ])
+      }
+    })()
+
+    function addMoment({kind, src, thumb='', caption='', tags=[], link=''}){
+      const list = get(MOM_KEY,[])
+      list.unshift({ id:randomId(), kind, src, thumb, caption, tags, link, author:'You', created:Date.now(), likes:0, liked:false, comments:[] })
+      set(MOM_KEY,list); renderMoments()
+      alert('Posted to Moments ✓')
+    }
+
+    // Composer
+    let momFileBlobUrl = ''
+    byId('momFile').addEventListener('change', (e)=>{
+      const f = e.target.files[0]; if(!f) return
+      if(momFileBlobUrl) URL.revokeObjectURL(momFileBlobUrl)
+      momFileBlobUrl = URL.createObjectURL(f)
+      byId('momCaption').focus()
+    })
+    byId('momPost').onclick = ()=>{
+      if(!momFileBlobUrl) return alert('Upload a video or image first')
+      const kind = (byId('momFile').files[0]?.type||'').startsWith('video') ? 'video':'image'
+      const caption = byId('momCaption').value.trim()
+      const tags = byId('momTags').value.split(',').map(s=>s.trim().replace(/^#/, '')).filter(Boolean)
+      const link = byId('momLink').value.trim()
+      addMoment({kind, src:momFileBlobUrl, caption, tags, link})
+      byId('momCaption').value=''; byId('momTags').value=''; byId('momLink').value=''; byId('momFile').value=''; momFileBlobUrl=''
+    }
+
+    // Stories
+    let storyBlobUrl = ''
+    byId('storyFile').addEventListener('change', (e)=>{
+      const f=e.target.files[0]; if(!f) return
+      if(storyBlobUrl) URL.revokeObjectURL(storyBlobUrl)
+      storyBlobUrl = URL.createObjectURL(f)
+      const list = get(STO_KEY,[])
+      list.unshift({id:randomId(), kind:f.type.startsWith('video')?'video':'image', src:storyBlobUrl, thumb:storyBlobUrl, caption:'New story', author:'You', created:Date.now(), duration:7})
+      set(STO_KEY,list); renderStories(); alert('Story added ✓')
+    })
+
+    function renderStories(){
+      const row = byId('momStoriesRow'); row.innerHTML=''
+      get(STO_KEY,[]).forEach((s, idx)=>{
+        const b = document.createElement('button');
+        b.className='flex flex-col items-center gap-1'
+        b.innerHTML = `<span class='block h-16 w-16 rounded-full border-2 border-fuchsia-400 overflow-hidden'>${s.kind==='image'? `<img src='${s.thumb}' class='h-full w-full object-cover'>`:`<video src='${s.thumb}' class='h-full w-full object-cover' muted></video>`}</span><span class='text-[11px] max-w-20 truncate'>${s.author||'Story'}</span>`
+        b.onclick = ()=> openStory(idx)
+        row.appendChild(b)
+      })
+    }
+
+    function openStory(startIndex){
+      const stories = get(STO_KEY,[])
+      if(!stories.length) return
+      let i = Math.max(0, Math.min(startIndex, stories.length-1))
+      modal.classList.remove('hidden')
+      modal.innerHTML = `<div class='w-full max-w-sm rounded-2xl bg-black text-white overflow-hidden'>
+        <div class='h-1.5 w-full bg-white/20'><div id='storyBar' class='h-full w-0 bg-white'></div></div>
+        <div id='storyWrap' class='aspect-[9/16] w-full bg-black grid place-items-center'></div>
+        <div class='p-3 flex items-center justify-between text-sm'><div id='storyMeta'></div><div class='flex gap-2'><button id='st-prev' class='chip bg-white/10'>Prev</button><button id='st-next' class='chip bg-white/10'>Next</button><button id='st-close' class='chip bg-white/10'>Close</button></div></div>
+      </div>`
+      const bar = byId('storyBar'), wrap = byId('storyWrap'), meta = byId('storyMeta')
+      let timer=null, t0=0, dur=7000
+      function render(){
+        const s = stories[i]; wrap.innerHTML=''
+        if(s.kind==='video'){
+          const v=document.createElement('video'); v.src=s.src; v.autoplay=true; v.muted=true; v.playsInline=true; v.className='h-full w-full object-cover'; wrap.appendChild(v)
+        }else{ const img=document.createElement('img'); img.src=s.src; img.className='h-full w-full object-cover'; wrap.appendChild(img) }
+        meta.textContent = (s.author||'') + (s.caption? ' — '+s.caption:'')
+        bar.style.width='0%'; t0=Date.now(); clearInterval(timer)
+        timer=setInterval(()=>{
+          const p=Math.min(1,(Date.now()-t0)/dur); bar.style.width=(p*100)+'%'; if(p>=1){ next() }
+        },50)
+      }
+      function next(){ i=Math.min(stories.length-1, i+1); render() }
+      function prev(){ i=Math.max(0, i-1); render() }
+      byId('st-next').onclick = next; byId('st-prev').onclick = prev; byId('st-close').onclick = ()=> modal.classList.add('hidden')
+      render()
+    }
+
+    // Vertical feed render
+    function momentNode(m){
+      const wrap = document.createElement('div');
+      wrap.className = 'mom-item rounded-2xl border border-black/10 bg-black/90 text-white overflow-hidden relative';
+      wrap.dataset.searchable = `${m.caption||''} ${(m.tags||[]).join(' ')}`.toLowerCase()
+      wrap.innerHTML = `
+        <div class='aspect-[9/16] w-full relative'>
+          ${m.kind==='video' ? `<video class='mom-video absolute inset-0 h-full w-full object-cover' src='${m.src}' poster='${m.thumb||''}' playsinline muted loop></video>` : `<img class='absolute inset-0 h-full w-full object-cover' src='${m.src}' alt=''>`}
+          <div class='absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 to-black/0'>
+            <div class='text-sm font-semibold'>${m.author||'You'}</div>
+            <div class='text-sm opacity-90'>${m.caption||''}</div>
+            <div class='text-xs opacity-70'>${(m.tags||[]).map(t=>'#'+t).join(' ')}</div>
+          </div>
+          <div class='absolute right-2 top-2 flex flex-col gap-2'>
+            <button class='like-btn rounded-full bg-white/10 px-3 py-1 text-xs' data-like='${m.id}'>❤ ${m.likes||0}</button>
+            <button class='comment-btn rounded-full bg-white/10 px-3 py-1 text-xs' data-cmt='${m.id}'>💬 ${m.comments?.length||0}</button>
+            ${m.link? `<a class='rounded-full bg-white/10 px-3 py-1 text-xs' target='_blank' href='${m.link}'>🔗 Link</a>`:''}
+          </div>
+        </div>
+        <div class='p-3 bg-white text-slate-900'>
+          <div class='flex items-center gap-2'>
+            <input class='grow rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm' placeholder='Add a comment…'>
+            <button class='send-cmt rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm font-semibold shadow-sm' data-send='${m.id}'>Send</button>
+          </div>
+          <div class='mt-2 space-y-1 text-sm max-h-32 overflow-y-auto' id='cmt-${m.id}'></div>
+        </div>`
+      return wrap
+    }
+
+    function renderMoments(){
+      const host = byId('momFeed'); host.innerHTML=''
+      const list = get(MOM_KEY,[])
+      list.forEach(m=>{
+        const node = momentNode(m)
+        host.appendChild(node)
+        // render comments
+        const cwrap = node.querySelector(`#cmt-${m.id}`)
+        ;(m.comments||[]).forEach(c=>{
+          const p=document.createElement('div'); p.innerHTML = `<span class='font-semibold'>${c.author||'User'}:</span> ${c.text}`; cwrap.appendChild(p)
+        })
+      })
+      wireMomentEvents()
+      autoPlayVisible()
+    }
+
+    function wireMomentEvents(){
+      document.querySelectorAll('[data-like]').forEach(b=> b.onclick = ()=>{
+        const id=b.dataset.like; const list=get(MOM_KEY,[]); const m=list.find(x=>x.id===id); if(!m) return
+        m.liked=!m.liked; m.likes = (m.likes||0) + (m.liked? 1 : -1); set(MOM_KEY,list); b.textContent = `❤ ${m.likes}`
+      })
+      document.querySelectorAll('[data-send]').forEach(b=> b.onclick = ()=>{
+        const id=b.dataset.send; const list=get(MOM_KEY,[]); const m=list.find(x=>x.id===id); if(!m) return
+        const input = b.parentElement.querySelector('input'); const text=input.value.trim(); if(!text) return
+        m.comments = m.comments||[]; m.comments.push({id:randomId(), text, ts:Date.now(), author:'You'})
+        set(MOM_KEY,list); input.value=''
+        const cwrap = byId(`cmt-${id}`); const p=document.createElement('div'); p.innerHTML = `<span class='font-semibold'>You:</span> ${text}`; cwrap.appendChild(p)
+        const wa = (get(S.cfg,{}).wa||'').trim(); if(wa){ const msg=encodeURIComponent(`New comment on your moment: ${text}`); /* optional notify: window.open(`https://wa.me/${wa}?text=${msg}`,'_blank') */ }
+      })
+    }
+
+    // Autoplay pause using IntersectionObserver
+    function autoPlayVisible(){
+      const vids = Array.from(document.querySelectorAll('.mom-video'))
+      if(!('IntersectionObserver' in window)) { vids.forEach(v=>{try{v.play()}catch{}}); return }
+      const obs = new IntersectionObserver((entries)=>{
+        entries.forEach(en=>{
+          const v=en.target; if(en.isIntersecting && en.intersectionRatio>0.6){ try{v.play()}catch{} } else { try{v.pause()}catch{} }
+        })
+      }, {threshold:[0,0.25,0.5,0.75,1]})
+      vids.forEach(v=> obs.observe(v))
+    }
+
+    // Keyboard nav (J/K like many apps)
+    document.addEventListener('keydown', (e)=>{
+      if(byId('tab-moments').classList.contains('hidden')) return
+      const host = byId('momFeed');
+      if(e.key.toLowerCase()==='j'){ host.scrollBy({top:host.clientHeight*0.9, behavior:'smooth'}) }
+      if(e.key.toLowerCase()==='k'){ host.scrollBy({top:-host.clientHeight*0.9, behavior:'smooth'}) }
+    })
+
+    renderStories(); renderMoments()
+
+    // ————————————————————————————————————————————————
+    // COMMUNICATION
+    // ————————————————————————————————————————————————
+    const chatLog = byId('chatLog'), chatMsg = byId('chatMsg'), chatSend = byId('chatSend')
+    function renderChat(){
+      const msgs = get(S.chat,[])
+      chatLog.innerHTML = msgs.map(m=>`<div class='mb-2 ${m.me?'text-right':''}'><div class='inline-block rounded-xl px-3 py-2 text-sm ${m.me?'bg-sky-100':'bg-white/70'}'>${m.text}</div><div class='text-[10px] text-black/50'>${new Date(m.ts).toLocaleTimeString()}</div></div>`).join('')
+      chatLog.scrollTop = chatLog.scrollHeight
+    }
+    chatSend.onclick = ()=>{
+      const t = chatMsg.value.trim(); if(!t) return
+      const msgs = get(S.chat,[]); msgs.push({id:randomId(), me:true, text:t, ts:Date.now()}); set(S.chat,msgs); chatMsg.value=''; renderChat()
+    }
+    renderChat()
+
+    // Quick contacts (WhatsApp / Email / Call)
+    const cfg = Object.assign({ wa:'', email:'', phone:'' }, get(S.cfg,{}))
+    const cfgWhatsApp = byId('cfgWhatsApp'), cfgEmail = byId('cfgEmail'), cfgPhone = byId('cfgPhone')
+    cfgWhatsApp.value = cfg.wa || ''
+    cfgEmail.value = cfg.email || ''
+    cfgPhone.value = cfg.phone || ''
+    function saveCfg(){ set(S.cfg,{...get(S.cfg,{}), wa:cfgWhatsApp.value.trim(), email:cfgEmail.value.trim(), phone:cfgPhone.value.trim()}); updateContactButtons() }
+    cfgWhatsApp.addEventListener('change', saveCfg); cfgEmail.addEventListener('change', saveCfg); cfgPhone.addEventListener('change', saveCfg)
+    function updateContactButtons(){
+      const cur = get(S.cfg,{})
+      const waText = encodeURIComponent('Hello! 👋 I would like to chat via Moments Hub.')
+      byId('waBtn').href = cur.wa ? `https://wa.me/${cur.wa}?text=${waText}` : '#'
+      byId('emBtn').href = cur.email ? `mailto:${cur.email}?subject=Hello from Moments Hub` : '#'
+      byId('callBtn').href = cur.phone ? `tel:${cur.phone}` : '#'
+      byId('emBtn').setAttribute('target','_self')
+    }
+    updateContactButtons()
+
+    // ————————————————————————————————————————————————
+    // ENTERTAINMENT
+    // ————————————————————————————————————————————————
+    const VIDS = get(S.vid,[
+      {t:'Car interior glow‑up (15s)', src:'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'},
+      {t:'Laundry hack short', src:'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4'}
+    ])
+    const AUDS = get(S.aud,[
+      {t:'Chill track 1', src:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'},
+      {t:'Chill track 2', src:'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3'}
+    ])
+    const vidPlayer = byId('vidPlayer'), vidList = byId('vidList')
+    const audPlayer = byId('audPlayer'), audList = byId('audList')
+
+    function renderVids(){
+      vidList.innerHTML = ''
+      VIDS.forEach(v=>{
+        const b = document.createElement('button');
+        b.className = 'flex items-center justify-between rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-left shadow-sm';
+        b.innerHTML = `<span>${v.t}</span><span class='text-xs text-black/50'>Play</span>`
+        b.onclick = ()=>{ vidPlayer.src = v.src; vidPlayer.play() }
+        vidList.appendChild(b)
+      })
+      if(VIDS[0]) vidPlayer.src = VIDS[0].src
+    }
+    function renderAuds(){
+      audList.innerHTML = ''
+      AUDS.forEach(a=>{
+        const b = document.createElement('button');
+        b.className = 'flex items-center justify-between rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-left shadow-sm';
+        b.innerHTML = `<span>${a.t}</span><span class='text-xs text-black/50'>Play</span>`
+        b.onclick = ()=>{ audPlayer.src = a.src; audPlayer.play() }
+        audList.appendChild(b)
+      })
+      if(AUDS[0]) audPlayer.src = AUDS[0].src
+    }
+    renderVids(); renderAuds()
+
+    // ————————————————————————————————————————————————
+    // TOURISM (Leaflet + sample POIs)
+    // ————————————————————————————————————————————————
+    const map = L.map('map').setView([0.3476, 32.5825], 12) // Kampala
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map)
+    const PLACES = [
+      {name:'Uganda Museum', lat:0.3369, lon:32.5762, kind:'fun'},
+      {name:'Ndere Cultural Centre', lat:0.3749, lon:32.6200, kind:'fun'},
+      {name:'Kasubi Royal Tombs', lat:0.3472, lon:32.5534, kind:'fun'},
+      {name:'Cafe Javas City Oil', lat:0.3361, lon:32.5837, kind:'food'},
+      {name:'Kampala Serena Hotel', lat:0.3228, lon:32.5863, kind:'hotel'},
+      {name:'Entebbe Botanical Gardens', lat:0.0584, lon:32.4737, kind:'fun'}
+    ]
+    const placeLayer = L.layerGroup().addTo(map)
+    function renderPlaces(filter='all'){
+      placeLayer.clearLayers();
+      const list = byId('placeList'); list.innerHTML=''
+      PLACES.filter(p=> filter==='all' || p.kind===filter).forEach(p=>{
+        const m = L.marker([p.lat,p.lon]).addTo(placeLayer).bindPopup(`<b>${p.name}</b>`)
+        const row = document.createElement('div'); row.className='rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm flex items-center justify-between'
+        const dir = `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}`
+        row.innerHTML = `<div><div class='font-semibold'>${p.name}</div><div class='text-xs text-black/60'>${p.kind}</div></div><a target='_blank' href='${dir}' class='rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm'>Directions</a>`
+        row.onclick = ()=>{ map.setView([p.lat,p.lon], 14); m.openPopup() }
+        list.appendChild(row)
+      })
+    }
+    renderPlaces('all')
+    document.querySelectorAll('[data-filter]').forEach(b=> b.onclick = ()=> renderPlaces(b.dataset.filter))
+    byId('useGPS').onclick = ()=>{ if(navigator.geolocation){ navigator.geolocation.getCurrentPosition(pos=>{ map.setView([pos.coords.latitude, pos.coords.longitude], 13) }) } }
+
+    // ————————————————————————————————————————————————
+    // PAYMENTS
+    // ————————————————————————————————————————————————
+    function loadPS(){ return Object.assign({business:'', mtn:'', airtel:'', paypal:'', currency:'UGX'}, get('mh:pay:settings',{})) }
+    function savePS(ps){ localStorage.setItem('mh:pay:settings', JSON.stringify(ps)) }
+    const ps = loadPS()
+    ;['ps-business','ps-mtn','ps-airtel','ps-paypal','ps-currency'].forEach(id=> byId(id).value = ps[{ 'ps-business':'business','ps-mtn':'mtn','ps-airtel':'airtel','ps-paypal':'paypal','ps-currency':'currency' }[id]] || '')
+    byId('ps-save').onclick = ()=>{
+      const nps = { business:byId('ps-business').value.trim(), mtn:byId('ps-mtn').value.trim(), airtel:byId('ps-airtel').value.trim(), paypal:byId('ps-paypal').value.trim(), currency:(byId('ps-currency').value.trim()||'UGX') }
+      savePS(nps); alert('Saved payment settings ✓')
+    }
+
+    function renderPayList(){
+      const list = get(S.pay,[]); const host = byId('payList'); host.innerHTML=''
+      list.forEach(p=>{
+        const row = document.createElement('div'); row.className='rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm flex items-center justify-between'
+        row.innerHTML = `<div><div class='font-semibold'>${p.name} — ${p.currency}${Number(p.amount).toFixed(0)}</div><div class='text-xs text-black/60'>${p.reason} • Ref ${p.ref}</div></div><div class='flex gap-2'><button class='rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm' data-paid='${p.id}'>${p.paid?'Paid':'Mark paid'}</button><button class='rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm' data-del='${p.id}'>🗑</button></div>`
+        host.appendChild(row)
+      })
+    }
+    renderPayList()
+    document.addEventListener('click', (e)=>{
+      const d1 = e.target.closest('[data-paid]'); if(d1){ const id=d1.dataset.paid; const list=get(S.pay,[]); const it=list.find(x=>x.id===id); if(it){ it.paid=!it.paid; set(S.pay,list); renderPayList() } }
+      const d2 = e.target.closest('[data-del]'); if(d2){ const id=d2.dataset.del; set(S.pay,get(S.pay,[]).filter(x=>x.id!==id)); renderPayList() }
+    })
+
+    byId('pr-ref').value = `MH-${Date.now().toString().slice(-6)}`
+    byId('pr-make').onclick = ()=>{
+      const settings = loadPS()
+      const req = { id:randomId(), name:byId('pr-name').value.trim(), reason:byId('pr-reason').value.trim(), amount:Number(byId('pr-amount').value||0), ref:(byId('pr-ref').value.trim()||`MH-${Date.now()}`), currency:settings.currency||'UGX', paid:false }
+      if(!req.name || !req.reason || !req.amount){ alert('Fill name, amount, and reason.'); return }
+      const list = get(S.pay,[]); list.unshift(req); set(S.pay,list); renderPayList()
+      byId('pr-out').innerHTML = `<div class='rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm'><div class='font-semibold'>${req.name} — ${req.currency}${req.amount.toFixed(0)}</div><div class='text-xs text-black/60'>${req.reason} • Ref ${req.ref}</div><div class='mt-2 text-xs'>MTN MoMo: ${settings.mtn||'-'} • Airtel Money: ${settings.airtel||'-'} ${settings.paypal? '• PayPal: '+settings.paypal : ''}</div></div>`
+    }
+    byId('pr-copy').onclick = ()=>{ const txt = byId('pr-out').innerText; if(!txt) return alert('Create a request first'); navigator.clipboard.writeText(txt).then(()=>alert('Copied ✓')) }
+    byId('pr-share-wa').onclick = ()=>{
+      const settings = loadPS();
+      const n = byId('pr-name').value.trim(); const a = byId('pr-amount').value.trim(); const r = byId('pr-reason').value.trim(); const ref = byId('pr-ref').value.trim();
+      if(!n||!a||!r) return alert('Fill name, amount, and reason.');
+      const msg = encodeURIComponent(`Hello ${n}! Please pay ${settings.currency}${a} for ${r}.\nRef: ${ref}.\nOptions: MTN ${settings.mtn||'-'}, Airtel ${settings.airtel||'-'}${settings.paypal? ', PayPal '+settings.paypal:''}. Thank you!`)
+      const phone = byId('pr-phone').value.trim() || (get(S.cfg,{}).wa||'')
+      if(!phone) return alert('Add a WhatsApp number to share.');
+      window.open(`https://wa.me/${phone}?text=${msg}`, '_blank')
+    }
+
+    // ————————————————————————————————————————————————
+    // ESSENTIALS
+    // ————————————————————————————————————————————————
+    function renderTodos(){
+      const host = byId('td-list'); host.innerHTML=''
+      const todos = get(S.todos,[])
+      todos.forEach(t=>{
+        const row = document.createElement('div'); row.className='flex items-center justify-between rounded-xl border border-black/10 bg-white/70 p-3 shadow-sm'
+        row.innerHTML = `<div class='flex items-center gap-2'><input type='checkbox' ${t.done?'checked':''}><span class='${t.done?'line-through opacity-60':''}'>${t.text}</span></div><button class='rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm' data-del='${t.id}'>🗑</button>`
+        row.querySelector('input').onchange = (e)=>{ t.done = e.target.checked; set(S.todos,get(S.todos,[]).map(x=>x.id===t.id?t:x)); renderTodos() }
+        row.querySelector('[data-del]').onclick = ()=>{ set(S.todos,get(S.todos,[]).filter(x=>x.id!==t.id)); renderTodos() }
+        host.appendChild(row)
+      })
+    }
+    byId('td-add').onclick = ()=>{ const txt = byId('td-text').value.trim(); if(!txt) return; const todos = get(S.todos,[]); todos.unshift({id:randomId(), text:txt, done:false}); set(S.todos,todos); byId('td-text').value=''; renderTodos() }
+    byId('notes').value = get(S.notes,'')
+    byId('notesSave').onclick = ()=>{ set(S.notes, byId('notes').value); alert('Notes saved ✓') }
+    renderTodos()
+
+    // Default tab
+    switchTab('feed')
+  </script>
+</body>
+</html>
