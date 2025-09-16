@@ -791,5 +791,146 @@ Options: MTN ${settings.mtn||'-'}, Airtel ${settings.airtel||'-'}${settings.payp
     // Default tab
     switchTab('moments')
   </script>
+<script>
+// ======================================================
+// Mirror uploads to repo index so they reflect on Moments repo
+// (hunter9201/momentshub-data) — no backend, GitHub API only
+// ======================================================
+(function(){
+  if(!window.GH){
+    window.GH = { owner:'hunter9201', repo:'momentshub-data', branch:'main', pagesBase:'https://hunter9201.github.io/momentshub-data' };
+  }
+  const PAGES_INDEX = 'indexes/moments.json';
+  const MOMENTS_DIR = 'moments';
+
+  const byId = (id)=>document.getElementById(id);
+  const get = (k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch{return d}};
+  const set = (k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+  const S = window.S || { cfg:'mh:cfg', moments:'mh:moments' };
+
+  function token(){ return (get(S.cfg,{}).gh_pat||'').trim() }
+  function b64str(s){ return btoa(unescape(encodeURIComponent(s))) }
+  function ghApiUrl(path){ return `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${path}` }
+  async function ghGetFileMeta(path){
+    const url = ghApiUrl(path) + `?ref=${encodeURIComponent(GH.branch)}`;
+    const res = await fetch(url, { headers:{ 'Accept':'application/vnd.github+json', ...(token()?{'Authorization':`token ${token()}`}:{}) } });
+    if(res.status===404) return null;
+    if(!res.ok) throw new Error(`GitHub GET ${path} failed: ${res.status}`);
+    const j = await res.json();
+    // if content present, decode
+    let text = null;
+    if(j.content){ text = atob(j.content.replace(/
+/g,'')); }
+    return { sha:j.sha, text, json: (text? JSON.parse(text) : null) };
+  }
+  async function ghUpsertJson(path, obj, message){
+    if(!token()) throw new Error('Connect GitHub PAT in Settings first.');
+    const meta = await ghGetFileMeta(path).catch(()=>null);
+    const body = { message: message||`update ${path}`, content: b64str(JSON.stringify(obj,null,2)), branch: GH.branch };
+    if(meta && meta.sha) body.sha = meta.sha;
+    const res = await fetch(ghApiUrl(path), { method:'PUT', headers:{ 'Accept':'application/vnd.github+json', 'Authorization':`token ${token()}` }, body: JSON.stringify(body) });
+    if(!res.ok){ const t=await res.text(); throw new Error(`GitHub PUT ${path} failed: ${res.status} ${t}`) }
+    return true;
+  }
+
+  async function getLogin(){
+    try{
+      if(get(S.cfg,{}).gh_login) return get(S.cfg,{}).gh_login;
+      if(!token()) return 'anon';
+      const r = await fetch('https://api.github.com/user', { headers:{ 'Authorization':`token ${token()}` } });
+      if(!r.ok) return 'anon';
+      const j = await r.json();
+      set(S.cfg,{...get(S.cfg,{}), gh_login:j.login});
+      return j.login || 'anon';
+    }catch{ return 'anon' }
+  }
+
+  async function updateMomentsIndex(entry){
+    // Load existing index via Contents API (needs no auth for public repo)
+    let idx = [];
+    let meta = null;
+    try{ meta = await ghGetFileMeta(PAGES_INDEX); }catch{}
+    if(meta && meta.json && Array.isArray(meta.json)) idx = meta.json;
+    // Prevent duplicates
+    idx = idx.filter(x=> x.id!==entry.id);
+    idx.unshift(entry);
+    if(idx.length>1000) idx = idx.slice(0,1000);
+    await ghUpsertJson(PAGES_INDEX, idx, `index: add ${entry.id}`);
+  }
+
+  async function commitMomentMeta(meta){
+    // write per-moment file + update index
+    await ghUpsertJson(`${MOMENTS_DIR}/${meta.id}.json`, meta, `moment: ${meta.id}`);
+    const indexEntry = { id:meta.id, author:meta.author, kind:meta.kind, caption:meta.caption||'', tags:meta.tags||[], link:meta.link||null, media_url:meta.src||meta.media_url||meta.url, created_at:meta.created_at||new Date().toISOString() };
+    await updateMomentsIndex(indexEntry);
+  }
+
+  async function fetchMomentsIndex(){
+    const url = `${GH.pagesBase}/${PAGES_INDEX}`;
+    try{
+      const r = await fetch(url, {cache:'no-store'});
+      if(!r.ok) return [];
+      const j = await r.json();
+      if(Array.isArray(j)) return j; return [];
+    }catch{ return [] }
+  }
+
+  // Override addMoment to force repo reflection
+  window.addMoment = async function({kind, src, thumb='', caption='', tags=[], link=''}){
+    if(!(src||'').startsWith(GH.pagesBase)) throw new Error('All media must be hosted at '+GH.pagesBase);
+    const author = await getLogin();
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+    const created_at = new Date().toISOString();
+    const meta = { id, author, kind, src, thumb, caption, tags, link, created_at };
+    // Commit to repo (per-moment + index)
+    await commitMomentMeta(meta);
+    // Local echo so UI updates instantly
+    const list = get(S.moments,[]); list.unshift({...meta, likes:0, liked:false, comments:[]}); set(S.moments,list);
+    try{ await renderMoments(); }catch{}
+    return id;
+  }
+
+  // Override renderMoments to read from the repo index
+  window.renderMoments = async function(){
+    const host = byId('momFeed'); if(!host) return;
+    host.innerHTML='';
+    const idx = await fetchMomentsIndex();
+    const all = idx.map(m=> ({ id:m.id, author:m.author||'user', kind:m.kind||((m.media_url||m.src||'').match(/\.mp4|\.webm|\.mov/i)?'video':'image'), src:m.media_url||m.src, thumb:m.media_url||m.src, caption:m.caption||'', tags:m.tags||[], link:m.link||null, likes:0, liked:false, comments:[] }));
+    if(!all.length){ host.innerHTML = `<div class='text-sm text-black/60'>No moments yet — be the first to post!</div>`; return }
+    all.forEach(m=>{
+      const node = (function(m){
+        const wrap = document.createElement('div');
+        wrap.className = 'mom-item rounded-2xl border border-black/10 bg-black/90 text-white overflow-hidden relative';
+        wrap.dataset.searchable = `${m.caption||''} ${(m.tags||[]).join(' ')}`.toLowerCase();
+        wrap.innerHTML = `
+          <div class='aspect-[9/16] w-full relative'>
+            ${m.kind==='video' ? `<video class='mom-video absolute inset-0 h-full w-full object-cover' src='${m.src}' playsinline muted loop></video>` : `<img class='absolute inset-0 h-full w-full object-cover' src='${m.src}' alt=''>`}
+            <div class='absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 to-black/0'>
+              <div class='text-sm font-semibold'>${m.author||'user'}</div>
+              <div class='text-sm opacity-90'>${m.caption||''}</div>
+              <div class='text-xs opacity-70'>${(m.tags||[]).map(t=>'#'+t).join(' ')}</div>
+            </div>
+            <div class='absolute right-2 top-2 flex flex-col gap-2'>
+              <button class='rounded-full bg-white/10 px-3 py-1 text-xs'>❤ 0</button>
+              ${m.link? `<a class='rounded-full bg-white/10 px-3 py-1 text-xs' target='_blank' href='${m.link}'>🔗 Link</a>`:''}
+            </div>
+          </div>`;
+        return wrap; }) (m);
+      host.appendChild(node);
+    });
+    // Autoplay
+    const vids = Array.from(document.querySelectorAll('.mom-video'));
+    if('IntersectionObserver' in window){
+      const obs = new IntersectionObserver((entries)=>{
+        entries.forEach(en=>{ const v=en.target; if(en.isIntersecting && en.intersectionRatio>0.6){ v.play().catch(()=>{}); } else { v.pause(); } });
+      }, {threshold:[0,0.6,1]});
+      vids.forEach(v=> obs.observe(v));
+    } else { vids.forEach(v=> v.play && v.play().catch(()=>{})); }
+  }
+
+  // Re-run once to populate from repo
+  try{ window.renderMoments(); }catch{}
+})();
+</script>
 </body>
 </html>
