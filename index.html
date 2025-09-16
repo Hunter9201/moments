@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Moments Hub — Life Super‑App + Moments</title>
+  <title>Moments Hub — Life Super‑App + Moments 2.0</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -14,6 +14,10 @@
     .mom-feed{scroll-snap-type:y mandatory; overflow-y:auto; max-height:85vh}
     .mom-item{scroll-snap-align:center}
     .chip{font-size:.7rem;padding:.2rem .5rem;border-radius:999px;background:rgba(0,0,0,.08)}
+    .studio-range{accent-color:#0ea5e9}
+    .fx-badge{border:1px solid rgba(0,0,0,.1);padding:.2rem .5rem;border-radius:999px;font-size:.7rem}
+    .story-bar{height:4px;background:rgba(255,255,255,.25);border-radius:2px;overflow:hidden}
+    .story-bar > div{height:100%;background:white;width:0}
   </style>
 </head>
 <body class="min-h-screen radial-bg text-slate-900">
@@ -51,36 +55,64 @@
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" id="feed"></div>
     </section>
 
-    <!-- MOMENTS (TikTok/Instagram style) -->
+    <!-- MOMENTS (Reels/Stories with 48h TTL + Studio) -->
     <section id="tab-moments" class="hidden space-y-4">
-      <!-- Stories Row -->
+      <!-- Stories Row (grouped by author; 48h TTL) -->
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="flex items-center justify-between">
-          <div class="text-xs uppercase tracking-widest text-black/50">Stories</div>
-          <label class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm cursor-pointer">➕ Add Story <input id="storyFile" type="file" accept="video/*,image/*" class="hidden"></label>
+          <div class="text-xs uppercase tracking-widest text-black/50">Stories (48h)</div>
+          <label class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm cursor-pointer">➕ Add Story<input id="storyFile" type="file" accept="video/*,image/*" class="hidden"></label>
         </div>
         <div id="momStoriesRow" class="mt-3 flex gap-3 overflow-x-auto pb-2"></div>
       </div>
 
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <!-- Composer -->
+        <!-- Story Studio / Composer -->
         <div class="order-2 lg:order-1 lg:col-span-1 rounded-2xl border border-black/10 bg-white/80 p-4 card h-max">
-          <div class="text-xs uppercase tracking-widest text-black/50">Create a Moment</div>
+          <div class="text-xs uppercase tracking-widest text-black/50">Story Studio</div>
           <div class="mt-3 grid gap-2 text-sm">
             <label class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 shadow-sm cursor-pointer">📤 Upload video/image<input id="momFile" type="file" accept="video/*,image/*" class="hidden"></label>
+            <div id="studioPreview" class="aspect-[9/16] w-full overflow-hidden rounded-xl bg-black/5 grid place-items-center text-xs text-black/50">No media yet</div>
+            <!-- Presets -->
+            <div class="flex flex-wrap gap-2">
+              <button class="fx-btn fx-badge" data-fxpreset="vivid">Vivid+</button>
+              <button class="fx-btn fx-badge" data-fxpreset="noir">Noir</button>
+              <button class="fx-btn fx-badge" data-fxpreset="film">Film</button>
+              <button class="fx-btn fx-badge" data-fxpreset="cyber">Cyberpunk</button>
+              <button class="fx-btn fx-badge" data-fxpreset="pastel">Pastel</button>
+              <button class="fx-btn fx-badge" data-fxpreset="sunset">Sunset</button>
+              <button class="fx-btn fx-badge" data-fxpreset="neon">Neon</button>
+            </div>
+            <!-- Sliders -->
+            <div class="grid grid-cols-2 gap-2">
+              <label class="text-[11px]">Bright <input id="fx-bright" type="range" min="50" max="150" value="100" class="studio-range w-full"></label>
+              <label class="text-[11px]">Contrast <input id="fx-contrast" type="range" min="50" max="150" value="100" class="studio-range w-full"></label>
+              <label class="text-[11px]">Saturate <input id="fx-sat" type="range" min="50" max="200" value="120" class="studio-range w-full"></label>
+              <label class="text-[11px]">Hue <input id="fx-hue" type="range" min="0" max="360" value="0" class="studio-range w-full"></label>
+              <label class="text-[11px]">Sepia <input id="fx-sepia" type="range" min="0" max="100" value="0" class="studio-range w-full"></label>
+              <label class="text-[11px]">Blur <input id="fx-blur" type="range" min="0" max="5" value="0" step="0.1" class="studio-range w-full"></label>
+            </div>
+            <!-- Overlay text -->
             <input id="momCaption" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Caption (what's happening?)" />
             <input id="momTags" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="#tags (comma separated)" />
             <input id="momLink" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Optional link (https://)" />
-            <button id="momPost" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Post Moment</button>
-            <small class="text-black/50">Media stays on your device (local URL). To share publicly, host your file and paste the link.</small>
+            <div class="grid grid-cols-2 gap-2">
+              <input id="ov-text" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Overlay text" />
+              <select id="ov-pos" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2"><option value="bottom">Bottom</option><option value="top">Top</option><option value="center">Center</option></select>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button id="momPost" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Post to Moments</button>
+              <button id="resetFX" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Reset FX</button>
+            </div>
+            <small class="text-black/50">Videos keep filters at playback (no export). Images are baked with filters & text before posting.</small>
           </div>
         </div>
 
-        <!-- Vertical Feed -->
+        <!-- Moments Feed -->
         <div class="order-1 lg:order-2 lg:col-span-2 rounded-2xl border border-black/10 bg-white/80 p-0 card">
           <div class="flex items-center justify-between p-4">
             <div class="text-xs uppercase tracking-widest text-black/50">For You</div>
-            <div class="flex items-center gap-2 text-xs"><span class="chip">Swipe / Scroll</span><span class="chip">J/K = Next/Prev</span></div>
+            <div class="flex items-center gap-2 text-xs"><span class="chip">Swipe / Scroll</span><span class="chip">Hold = Pause</span><span class="chip">Tap ←/→</span></div>
           </div>
           <div id="momFeed" class="mom-feed px-3 pb-4 space-y-4"></div>
         </div>
@@ -210,11 +242,11 @@
   </main>
 
   <footer class="mt-6 grid place-items-center pb-16 text-center text-xs text-black/60">
-    <div>Private & local (no servers). Add your links, numbers, and places — then share.</div>
+    <div>Private & local (no servers). Stories auto‑expire after 48h unless you delete them earlier. Videos use live filters; images bake filters before posting.</div>
   </footer>
 
-  <!-- Modal for feed/media & stories -->
-  <div id="modal" class="hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"></div>
+  <!-- Modal for feed/media & stories viewer -->
+  <div id="modal" class="hidden fixed inset-0 z-50 grid place-items-center bg-black/80 p-4"></div>
 
   <script>
     // ————————————————————————————————————————————————
@@ -273,7 +305,7 @@
       feed.appendChild(card);
     }
 
-    function openModal(item){
+    function openModalItem(item){
       modal.classList.remove('hidden');
       modal.innerHTML = `
         <div class="max-w-2xl rounded-2xl bg-white p-4 shadow-lg">
@@ -291,127 +323,274 @@
     items.forEach(renderCard)
     document.addEventListener('click', (e)=>{
       const openBtn = e.target.closest('[data-open]');
-      if(openBtn){ const it = items.find(x=>x.id===openBtn.dataset.open); if(it) openModal(it) }
+      if(openBtn){ const it = items.find(x=>x.id===openBtn.dataset.open); if(it) openModalItem(it) }
       const addBtn = e.target.closest('[data-add-moment]');
       if(addBtn){ const it = items.find(x=>x.id===addBtn.dataset.addMoment); if(it){ addMoment({kind:it.kind, src:it.src, thumb:it.thumb, caption:it.title, tags:[it.tag], link:it.href}) } }
     })
 
-    // Feed search
+    // Feed + Moments search
     byId('search').addEventListener('input', (e)=>{
       const q = e.target.value.toLowerCase().trim()
-      // Filter Feed
       Array.from(feed.children).forEach(c=> c.style.display = c.textContent.toLowerCase().includes(q) ? '' : 'none')
-      // Filter Moments
       Array.from(byId('momFeed').children).forEach(c=> c.style.display = c.dataset.searchable?.includes(q) ? '' : 'none')
     })
 
     // ————————————————————————————————————————————————
-    // MOMENTS (Reels/TikTok‑style)
+    // MOMENTS — Stories (48h TTL), Studio (filters), Feed
     // ————————————————————————————————————————————————
+    const STORY_TTL = 48*60*60*1000
     const MOM_KEY = S.moments
     const STO_KEY = S.stories
 
-    // Seed on first run
+    // Seed initial data once
     ;(()=>{
       if(get(MOM_KEY,null)===null){
         set(MOM_KEY,[
-          {id:randomId(), kind:'video', src:items[0].src, thumb:items[0].thumb, caption:'Laundry hack in 20s', tags:['Hacks','Laundry'], author:'Orji', created:Date.now(), likes:12, liked:false, comments:[]},
-          {id:randomId(), kind:'video', src:items[1].src, thumb:items[1].thumb, caption:'Car glow‑up before/after', tags:['Showcase','Auto'], author:'Flair', created:Date.now(), likes:5, liked:false, comments:[]},
-          {id:randomId(), kind:'image', src:items[2].src, thumb:items[2].thumb, caption:'Savings circle wins', tags:['Kibiina','Stories'], author:'Kibiina', created:Date.now(), likes:8, liked:false, comments:[]}
+          {id:randomId(), kind:'video', src:items[0].src, thumb:items[0].thumb, caption:'Laundry hack in 20s', tags:['Hacks','Laundry'], author:'Orji', created:Date.now(), likes:12, liked:false, comments:[], fx:{b:100,c:100,s:120,h:0,sp:0,bl:0}},
+          {id:randomId(), kind:'video', src:items[1].src, thumb:items[1].thumb, caption:'Car glow‑up', tags:['Showcase','Auto'], author:'Flair', created:Date.now(), likes:5, liked:false, comments:[], fx:{b:100,c:110,s:130,h:0,sp:0,bl:0}},
+          {id:randomId(), kind:'image', src:items[2].src, thumb:items[2].thumb, caption:'Savings circle wins', tags:['Kibiina','Stories'], author:'Kibiina', created:Date.now(), likes:8, liked:false, comments:[], fx:{b:105,c:105,s:115,h:12,sp:10,bl:0}}
         ])
       }
       if(get(STO_KEY,null)===null){
         set(STO_KEY,[
-          {id:randomId(), kind:'image', src:items[2].thumb, thumb:items[2].thumb, caption:'Goal reached! 🎉', author:'Kibiina', created:Date.now(), duration:7},
-          {id:randomId(), kind:'image', src:items[3].thumb, thumb:items[3].thumb, caption:'Case notes drop', author:'Lion Hunter', created:Date.now(), duration:7}
+          {id:randomId(), kind:'image', src:items[2].thumb, thumb:items[2].thumb, caption:'Goal reached! 🎉', author:'Kibiina', created:Date.now()-1000*60*30, duration:7, fx:{b:105,c:105,s:120,h:0,sp:0,bl:0}},
+          {id:randomId(), kind:'image', src:items[3].thumb, thumb:items[3].thumb, caption:'Case notes drop', author:'Lion Hunter', created:Date.now()-1000*60*60, duration:7, fx:{b:100,c:110,s:120,h:0,sp:0,bl:0}}
         ])
       }
     })()
 
-    function addMoment({kind, src, thumb='', caption='', tags=[], link=''}){
+    function isExpired(st){ return (Date.now() - (st.created||0)) > STORY_TTL }
+    function purgeExpiredStories(){ const list=get(STO_KEY,[]).filter(s=>!isExpired(s)); set(STO_KEY,list) }
+
+    // Studio state
+    const studio = { blobUrl:'', isVideo:false, fx:{b:100,c:100,s:120,h:0,sp:0,bl:0}, overlay:{text:'', pos:'bottom'} }
+    const studioPrev = byId('studioPreview')
+
+    function fxToCss(fx){ return `brightness(${fx.b||100}%) contrast(${fx.c||100}%) saturate(${fx.s||120}%) hue-rotate(${fx.h||0}deg) sepia(${fx.sp||0}%) blur(${fx.bl||0}px)` }
+
+    function applyStudioPreview(){
+      if(!studio.blobUrl){ studioPrev.innerHTML='No media yet'; return }
+      studioPrev.innerHTML=''
+      const overlay = document.createElement('div'); overlay.className='absolute inset-0 pointer-events-none flex'
+      overlay.style.alignItems = studio.overlay.pos==='top'? 'flex-start' : studio.overlay.pos==='center'? 'center' : 'flex-end'
+      overlay.innerHTML = `<div class='w-full p-3 text-white text-center text-sm' style='text-shadow:0 2px 6px rgba(0,0,0,.7)'>${studio.overlay.text||''}</div>`
+      if(studio.isVideo){
+        const v=document.createElement('video'); v.src=studio.blobUrl; v.autoplay=true; v.loop=true; v.muted=true; v.playsInline=true; v.className='h-full w-full object-cover relative'; v.style.filter = fxToCss(studio.fx); studioPrev.appendChild(v); studioPrev.appendChild(overlay)
+      } else {
+        const img=document.createElement('img'); img.src=studio.blobUrl; img.className='h-full w-full object-cover relative'; img.style.filter = fxToCss(studio.fx); studioPrev.appendChild(img); studioPrev.appendChild(overlay)
+      }
+    }
+
+    // Presets
+    const PRESETS = {
+      vivid:{b:110,c:115,s:150,h:0,sp:0,bl:0}, noir:{b:105,c:130,s:0,h:0,sp:0,bl:0}, film:{b:102,c:108,s:115,h:12,sp:20,bl:0.2}, cyber:{b:105,c:125,s:170,h:220,sp:0,bl:0.4}, pastel:{b:110,c:95,s:90,h:10,sp:0,bl:0.6}, sunset:{b:108,c:110,s:140,h:20,sp:10,bl:0}, neon:{b:105,c:140,s:180,h:300,sp:0,bl:0.2}
+    }
+
+    document.querySelectorAll('.fx-btn').forEach(b=> b.onclick = ()=>{ studio.fx = {...studio.fx, ...PRESETS[b.dataset.fxpreset]}; syncSlidersFromFx(); applyStudioPreview() })
+    function syncSlidersFromFx(){ byId('fx-bright').value=studio.fx.b; byId('fx-contrast').value=studio.fx.c; byId('fx-sat').value=studio.fx.s; byId('fx-hue').value=studio.fx.h; byId('fx-sepia').value=studio.fx.sp; byId('fx-blur').value=studio.fx.bl }
+    function syncFxFromSliders(){ studio.fx.b=+byId('fx-bright').value; studio.fx.c=+byId('fx-contrast').value; studio.fx.s=+byId('fx-sat').value; studio.fx.h=+byId('fx-hue').value; studio.fx.sp=+byId('fx-sepia').value; studio.fx.bl=+byId('fx-blur').value }
+    ;['fx-bright','fx-contrast','fx-sat','fx-hue','fx-sepia','fx-blur'].forEach(id=> byId(id).addEventListener('input', ()=>{ syncFxFromSliders(); applyStudioPreview() }))
+    byId('resetFX').onclick = ()=>{ studio.fx={b:100,c:100,s:120,h:0,sp:0,bl:0}; syncSlidersFromFx(); applyStudioPreview() }
+
+    // Upload handlers
+    byId('momFile').addEventListener('change', (e)=>{
+      const f=e.target.files[0]; if(!f) return
+      if(studio.blobUrl) URL.revokeObjectURL(studio.blobUrl)
+      studio.isVideo = f.type.startsWith('video')
+      studio.blobUrl = URL.createObjectURL(f)
+      applyStudioPreview()
+    })
+
+    // Post to Moments (image baked, video references blob + fx at playback)
+    byId('momPost').onclick = async ()=>{
+      if(!studio.blobUrl) return alert('Upload a video or image first')
+      const caption = byId('momCaption').value.trim()
+      const tags = byId('momTags').value.split(',').map(s=>s.trim().replace(/^#/, '')).filter(Boolean)
+      const link = byId('momLink').value.trim()
+      studio.overlay.text = byId('ov-text').value.trim(); studio.overlay.pos = byId('ov-pos').value
+
+      let src = studio.blobUrl; let thumb = studio.blobUrl; let fx = {...studio.fx}
+
+      if(!studio.isVideo){
+        // Bake filters + overlay into image via canvas
+        const img = new Image(); img.crossOrigin='anonymous'; img.src = studio.blobUrl
+        await img.decode().catch(()=>{})
+        const W=720, H=1280; const c=document.createElement('canvas'); c.width=W; c.height=H; const ctx=c.getContext('2d')
+        // Draw with filters
+        ctx.filter = fxToCss(fx)
+        // cover fit
+        const r=Math.max(W/img.width, H/img.height); const w=img.width*r, h=img.height*r; const x=(W-w)/2, y=(H-h)/2
+        ctx.drawImage(img, x,y,w,h)
+        // overlay text
+        if(studio.overlay.text){ ctx.save(); ctx.filter='none'; ctx.font='bold 36px system-ui, sans-serif'; ctx.fillStyle='rgba(255,255,255,.95)'; ctx.textAlign='center'; ctx.shadowColor='rgba(0,0,0,.6)'; ctx.shadowBlur=12; const yy = studio.overlay.pos==='top'? 60 : studio.overlay.pos==='center'? H/2 : H-40; ctx.fillText(studio.overlay.text, W/2, yy); ctx.restore() }
+        src = c.toDataURL('image/jpeg', .9); thumb = src; fx = null // baked
+        URL.revokeObjectURL(studio.blobUrl)
+      }
+
+      addMoment({kind: studio.isVideo?'video':'image', src, thumb, caption, tags, link, fx})
+      // reset
+      studio.blobUrl=''; byId('momFile').value=''; byId('momCaption').value=''; byId('momTags').value=''; byId('momLink').value=''; byId('ov-text').value=''; byId('ov-pos').value='bottom'; studio.fx={b:100,c:100,s:120,h:0,sp:0,bl:0}; syncSlidersFromFx(); applyStudioPreview()
+    }
+
+    function addMoment({kind, src, thumb='', caption='', tags=[], link='', fx=null}){
       const list = get(MOM_KEY,[])
-      list.unshift({ id:randomId(), kind, src, thumb, caption, tags, link, author:'You', created:Date.now(), likes:0, liked:false, comments:[] })
+      list.unshift({ id:randomId(), kind, src, thumb, caption, tags, link, author:'You', created:Date.now(), likes:0, liked:false, comments:[], fx })
       set(MOM_KEY,list); renderMoments()
       alert('Posted to Moments ✓')
     }
 
-    // Composer
-    let momFileBlobUrl = ''
-    byId('momFile').addEventListener('change', (e)=>{
-      const f = e.target.files[0]; if(!f) return
-      if(momFileBlobUrl) URL.revokeObjectURL(momFileBlobUrl)
-      momFileBlobUrl = URL.createObjectURL(f)
-      byId('momCaption').focus()
-    })
-    byId('momPost').onclick = ()=>{
-      if(!momFileBlobUrl) return alert('Upload a video or image first')
-      const kind = (byId('momFile').files[0]?.type||'').startsWith('video') ? 'video':'image'
-      const caption = byId('momCaption').value.trim()
-      const tags = byId('momTags').value.split(',').map(s=>s.trim().replace(/^#/, '')).filter(Boolean)
-      const link = byId('momLink').value.trim()
-      addMoment({kind, src:momFileBlobUrl, caption, tags, link})
-      byId('momCaption').value=''; byId('momTags').value=''; byId('momLink').value=''; byId('momFile').value=''; momFileBlobUrl=''
-    }
-
-    // Stories
+    // STORIES — Add (48h TTL) & render grouped by author
     let storyBlobUrl = ''
     byId('storyFile').addEventListener('change', (e)=>{
       const f=e.target.files[0]; if(!f) return
       if(storyBlobUrl) URL.revokeObjectURL(storyBlobUrl)
       storyBlobUrl = URL.createObjectURL(f)
       const list = get(STO_KEY,[])
-      list.unshift({id:randomId(), kind:f.type.startsWith('video')?'video':'image', src:storyBlobUrl, thumb:storyBlobUrl, caption:'New story', author:'You', created:Date.now(), duration:7})
-      set(STO_KEY,list); renderStories(); alert('Story added ✓')
+      list.unshift({id:randomId(), kind:f.type.startsWith('video')?'video':'image', src:storyBlobUrl, thumb:storyBlobUrl, caption:'New story', author:'You', created:Date.now(), duration:7, fx:{...studio.fx}})
+      set(STO_KEY,list); purgeExpiredStories(); renderStories(); alert('Story added ✓ (expires in 48h)')
     })
 
+    function groupByAuthor(stories){
+      const map = new Map();
+      stories.forEach(s=>{ if(!map.has(s.author)) map.set(s.author, []); map.get(s.author).push(s) })
+      return Array.from(map.entries()).map(([author, list])=>({author, list}))
+    }
+
     function renderStories(){
+      purgeExpiredStories()
       const row = byId('momStoriesRow'); row.innerHTML=''
-      get(STO_KEY,[]).forEach((s, idx)=>{
-        const b = document.createElement('button');
-        b.className='flex flex-col items-center gap-1'
-        b.innerHTML = `<span class='block h-16 w-16 rounded-full border-2 border-fuchsia-400 overflow-hidden'>${s.kind==='image'? `<img src='${s.thumb}' class='h-full w-full object-cover'>`:`<video src='${s.thumb}' class='h-full w-full object-cover' muted></video>`}</span><span class='text-[11px] max-w-20 truncate'>${s.author||'Story'}</span>`
-        b.onclick = ()=> openStory(idx)
+      const stories = get(STO_KEY,[]).filter(s=>!isExpired(s))
+      const groups = groupByAuthor(stories)
+      groups.forEach((g, gi)=>{
+        const cover = g.list[0]?.thumb || ''
+        const b = document.createElement('button'); b.className='flex flex-col items-center gap-1'
+        b.innerHTML = `<span class='relative block h-16 w-16 rounded-full border-2 ${g.author==='You'?'border-emerald-400':'border-fuchsia-400'} overflow-hidden'>${cover? `<img src='${cover}' class='h-full w-full object-cover'>`:''}${g.author==='You'?"<span class='absolute -bottom-1 -right-1 h-5 w-5 grid place-items-center rounded-full bg-emerald-500 text-white text-[12px] border-2 border-white'>✓</span>":''}</span><span class='text-[11px] max-w-20 truncate'>${g.author}</span>`
+        b.onclick = ()=> openStoryViewer(groups, gi, 0)
         row.appendChild(b)
       })
     }
 
-    function openStory(startIndex){
-      const stories = get(STO_KEY,[])
-      if(!stories.length) return
-      let i = Math.max(0, Math.min(startIndex, stories.length-1))
+    // WhatsApp‑like Story Viewer (tap left/right, hold to pause, auto advance, 48h TTL)
+    function openStoryViewer(groups, groupIndex, storyIndex){
       modal.classList.remove('hidden')
-      modal.innerHTML = `<div class='w-full max-w-sm rounded-2xl bg-black text-white overflow-hidden'>
-        <div class='h-1.5 w-full bg-white/20'><div id='storyBar' class='h-full w-0 bg-white'></div></div>
-        <div id='storyWrap' class='aspect-[9/16] w-full bg-black grid place-items-center'></div>
-        <div class='p-3 flex items-center justify-between text-sm'><div id='storyMeta'></div><div class='flex gap-2'><button id='st-prev' class='chip bg-white/10'>Prev</button><button id='st-next' class='chip bg-white/10'>Next</button><button id='st-close' class='chip bg-white/10'>Close</button></div></div>
-      </div>`
-      const bar = byId('storyBar'), wrap = byId('storyWrap'), meta = byId('storyMeta')
-      let timer=null, t0=0, dur=7000
-      function render(){
-        const s = stories[i]; wrap.innerHTML=''
-        if(s.kind==='video'){
-          const v=document.createElement('video'); v.src=s.src; v.autoplay=true; v.muted=true; v.playsInline=true; v.className='h-full w-full object-cover'; wrap.appendChild(v)
-        }else{ const img=document.createElement('img'); img.src=s.src; img.className='h-full w-full object-cover'; wrap.appendChild(img) }
-        meta.textContent = (s.author||'') + (s.caption? ' — '+s.caption:'')
-        bar.style.width='0%'; t0=Date.now(); clearInterval(timer)
-        timer=setInterval(()=>{
-          const p=Math.min(1,(Date.now()-t0)/dur); bar.style.width=(p*100)+'%'; if(p>=1){ next() }
-        },50)
+      const wrap = document.createElement('div')
+      wrap.className = 'w-full max-w-sm rounded-2xl bg-black text-white overflow-hidden relative'
+      modal.innerHTML = ''
+      modal.appendChild(wrap)
+
+      const header = document.createElement('div')
+      header.className='p-3 flex items-center justify-between text-sm'
+      const left = document.createElement('div')
+      const right = document.createElement('div')
+      header.appendChild(left); header.appendChild(right)
+      wrap.appendChild(header)
+
+      const bars = document.createElement('div')
+      bars.className='flex gap-1 px-3'
+      wrap.insertBefore(bars, header)
+
+      const stage = document.createElement('div')
+      stage.className='aspect-[9/16] w-full bg-black relative'
+      wrap.appendChild(stage)
+
+      const controls = document.createElement('div')
+      controls.className='absolute inset-0 grid grid-cols-2'
+      wrap.appendChild(controls)
+
+      const btnClose = document.createElement('button'); btnClose.textContent='✕'; btnClose.className='absolute right-2 top-2 chip bg-white/10'; btnClose.onclick = ()=> modal.classList.add('hidden')
+      wrap.appendChild(btnClose)
+
+      let paused=false, timer=null, startTs=0, curVideo=null
+
+      function current(){ return groups[groupIndex].list[storyIndex] }
+      function updateBars(){
+        bars.innerHTML=''
+        const total = groups[groupIndex].list.length
+        for(let i=0;i<total;i++){
+          const seg = document.createElement('div'); seg.className='story-bar flex-1'; seg.innerHTML='<div></div>'; bars.appendChild(seg)
+        }
       }
-      function next(){ i=Math.min(stories.length-1, i+1); render() }
-      function prev(){ i=Math.max(0, i-1); render() }
-      byId('st-next').onclick = next; byId('st-prev').onclick = prev; byId('st-close').onclick = ()=> modal.classList.add('hidden')
+
+      function render(){
+        const st = current(); if(!st || isExpired(st)){ next(); return }
+        stage.innerHTML=''; left.textContent = `${groups[groupIndex].author}`; right.textContent = new Date(st.created).toLocaleTimeString()
+        updateBars()
+        const segs = bars.querySelectorAll('.story-bar > div')
+        segs.forEach((d,i)=>{ d.style.width = i<storyIndex? '100%' : i===storyIndex? '0%' : '0' })
+
+        // Media
+        if(st.kind==='video'){
+          const v=document.createElement('video'); curVideo=v; v.src=st.src; v.autoplay=true; v.muted=true; v.playsInline=true; v.className='absolute inset-0 h-full w-full object-cover';
+          v.style.filter = st.fx? fxToCss(st.fx) : ''
+          stage.appendChild(v)
+          // overlay caption
+          if(st.caption){ const cap=document.createElement('div'); cap.className='absolute inset-x-0 bottom-0 p-3 text-center'; cap.style.textShadow='0 2px 6px rgba(0,0,0,.7)'; cap.innerHTML=`<div class='text-sm'>${st.caption}</div>`; stage.appendChild(cap) }
+          v.onloadedmetadata = ()=>{ startTs=performance.now(); runProgress(v.duration*1000) }
+        } else {
+          curVideo=null
+          const img=document.createElement('img'); img.src=st.src; img.className='absolute inset-0 h-full w-full object-cover'; img.style.filter = st.fx? fxToCss(st.fx):''; stage.appendChild(img)
+          if(st.caption){ const cap=document.createElement('div'); cap.className='absolute inset-x-0 bottom-0 p-3 text-center'; cap.style.textShadow='0 2px 6px rgba(0,0,0,.7)'; cap.innerHTML=`<div class='text-sm'>${st.caption}</div>`; stage.appendChild(cap) }
+          startTs=performance.now(); runProgress((st.duration||7)*1000)
+        }
+      }
+
+      function runProgress(totalMs){
+        clearInterval(timer)
+        const seg = bars.querySelectorAll('.story-bar > div')[storyIndex]
+        startTs = performance.now()
+        const tick = ()=>{
+          if(paused){ requestAnimationFrame(tick); return }
+          let p=0
+          if(curVideo){ p = curVideo.duration? (curVideo.currentTime/curVideo.duration) : 0 }
+          else { p = Math.min(1, (performance.now()-startTs)/totalMs) }
+          seg.style.width = (p*100)+'%'
+          if(p>=1){ next(); return }
+          requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
+      }
+
+      function next(){
+        const g = groups[groupIndex]
+        if(storyIndex < g.list.length-1){ storyIndex++; render() }
+        else if(groupIndex < groups.length-1){ groupIndex++; storyIndex=0; render() }
+        else { modal.classList.add('hidden') }
+      }
+      function prev(){ if(storyIndex>0){ storyIndex--; render() } else if(groupIndex>0){ groupIndex--; storyIndex=groups[groupIndex].list.length-1; render() } }
+
+      // Tap left/right to nav; hold to pause
+      const leftTap = document.createElement('div'); leftTap.className='h-full w-full'; const rightTap = document.createElement('div'); rightTap.className='h-full w-full'
+      controls.appendChild(leftTap); controls.appendChild(rightTap)
+      leftTap.addEventListener('click', ()=> prev())
+      rightTap.addEventListener('click', ()=> next())
+      ;['mousedown','touchstart'].forEach(ev=> controls.addEventListener(ev, ()=>{ paused=true; if(curVideo) curVideo.pause() }))
+      ;['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=> controls.addEventListener(ev, ()=>{ paused=false; if(curVideo) curVideo.play() }))
+
+      // Delete if it's your story
+      const del = document.createElement('button'); del.textContent='Delete'; del.className='absolute left-2 top-2 chip bg-white/10'
+      del.onclick = ()=>{
+        const st = current(); if(st && st.author==='You'){
+          const all = get(STO_KEY,[]).filter(s=> s.id!==st.id)
+          set(STO_KEY, all); // maintain others
+          // rebuild groups & reposition safely
+          const fresh = groupByAuthor(all)
+          if(!fresh.length){ modal.classList.add('hidden'); renderStories(); return }
+          groups = fresh; storyIndex=0; groupIndex=0; renderStories(); render()
+        } else { alert('Only the uploader can remove this story.') }
+      }
+      wrap.appendChild(del)
+
       render()
     }
 
-    // Vertical feed render
     function momentNode(m){
       const wrap = document.createElement('div');
       wrap.className = 'mom-item rounded-2xl border border-black/10 bg-black/90 text-white overflow-hidden relative';
       wrap.dataset.searchable = `${m.caption||''} ${(m.tags||[]).join(' ')}`.toLowerCase()
+      const filterCss = m.fx? fxToCss(m.fx) : ''
       wrap.innerHTML = `
         <div class='aspect-[9/16] w-full relative'>
-          ${m.kind==='video' ? `<video class='mom-video absolute inset-0 h-full w-full object-cover' src='${m.src}' poster='${m.thumb||''}' playsinline muted loop></video>` : `<img class='absolute inset-0 h-full w-full object-cover' src='${m.src}' alt=''>`}
+          ${m.kind==='video' ? `<video class='mom-video absolute inset-0 h-full w-full object-cover' src='${m.src}' poster='${m.thumb||''}' playsinline muted loop style='filter:${filterCss}'></video>` : `<img class='absolute inset-0 h-full w-full object-cover' src='${m.src}' alt='' style='filter:${filterCss}'>`}
           <div class='absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 to-black/0'>
             <div class='text-sm font-semibold'>${m.author||'You'}</div>
             <div class='text-sm opacity-90'>${m.caption||''}</div>
@@ -439,11 +618,8 @@
       list.forEach(m=>{
         const node = momentNode(m)
         host.appendChild(node)
-        // render comments
         const cwrap = node.querySelector(`#cmt-${m.id}`)
-        ;(m.comments||[]).forEach(c=>{
-          const p=document.createElement('div'); p.innerHTML = `<span class='font-semibold'>${c.author||'User'}:</span> ${c.text}`; cwrap.appendChild(p)
-        })
+        ;(m.comments||[]).forEach(c=>{ const p=document.createElement('div'); p.innerHTML = `<span class='font-semibold'>${c.author||'User'}:</span> ${c.text}`; cwrap.appendChild(p) })
       })
       wireMomentEvents()
       autoPlayVisible()
@@ -460,11 +636,9 @@
         m.comments = m.comments||[]; m.comments.push({id:randomId(), text, ts:Date.now(), author:'You'})
         set(MOM_KEY,list); input.value=''
         const cwrap = byId(`cmt-${id}`); const p=document.createElement('div'); p.innerHTML = `<span class='font-semibold'>You:</span> ${text}`; cwrap.appendChild(p)
-        const wa = (get(S.cfg,{}).wa||'').trim(); if(wa){ const msg=encodeURIComponent(`New comment on your moment: ${text}`); /* optional notify: window.open(`https://wa.me/${wa}?text=${msg}`,'_blank') */ }
       })
     }
 
-    // Autoplay pause using IntersectionObserver
     function autoPlayVisible(){
       const vids = Array.from(document.querySelectorAll('.mom-video'))
       if(!('IntersectionObserver' in window)) { vids.forEach(v=>{try{v.play()}catch{}}); return }
@@ -476,14 +650,7 @@
       vids.forEach(v=> obs.observe(v))
     }
 
-    // Keyboard nav (J/K like many apps)
-    document.addEventListener('keydown', (e)=>{
-      if(byId('tab-moments').classList.contains('hidden')) return
-      const host = byId('momFeed');
-      if(e.key.toLowerCase()==='j'){ host.scrollBy({top:host.clientHeight*0.9, behavior:'smooth'}) }
-      if(e.key.toLowerCase()==='k'){ host.scrollBy({top:-host.clientHeight*0.9, behavior:'smooth'}) }
-    })
-
+    // Initial paints
     renderStories(); renderMoments()
 
     // ————————————————————————————————————————————————
@@ -626,7 +793,9 @@
       const settings = loadPS();
       const n = byId('pr-name').value.trim(); const a = byId('pr-amount').value.trim(); const r = byId('pr-reason').value.trim(); const ref = byId('pr-ref').value.trim();
       if(!n||!a||!r) return alert('Fill name, amount, and reason.');
-      const msg = encodeURIComponent(`Hello ${n}! Please pay ${settings.currency}${a} for ${r}.\nRef: ${ref}.\nOptions: MTN ${settings.mtn||'-'}, Airtel ${settings.airtel||'-'}${settings.paypal? ', PayPal '+settings.paypal:''}. Thank you!`)
+      const msg = encodeURIComponent(`Hello ${n}! Please pay ${settings.currency}${a} for ${r}.
+Ref: ${ref}.
+Options: MTN ${settings.mtn||'-'}, Airtel ${settings.airtel||'-'}${settings.paypal? ', PayPal '+settings.paypal:''}. Thank you!`)
       const phone = byId('pr-phone').value.trim() || (get(S.cfg,{}).wa||'')
       if(!phone) return alert('Add a WhatsApp number to share.');
       window.open(`https://wa.me/${phone}?text=${msg}`, '_blank')
@@ -652,7 +821,7 @@
     renderTodos()
 
     // Default tab
-    switchTab('feed')
+    switchTab('moments')
   </script>
 </body>
 </html>
