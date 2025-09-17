@@ -1,11 +1,11 @@
 /* ===========================================================
-   Moments — GH Pages Hub (Fixed)
-   - Fix: path encoding per segment (no users%2Fusers.json)
-   - Fix: headers (User-Agent, Api Version)
-   - Media: Pages-first, Blob fallback
-   - Features: signup/login, verified-only posting, stories(48h),
-               moments, chat with unread counts, deletes,
-               images/videos only, HEIC->JPEG, up to 4 files
+   Moments — GH Pages Social (No call-stack overflow)
+   - Uses FileReader->base64 for uploads (no big spreads)
+   - Images/videos only; HEIC->JPEG conversion if lib present
+   - Self-signup (writes users/users.json) with PAT
+   - Only registered users can sign in, post, and view
+   - Stories (48h), Moments feed, Chat with unread counts
+   - Delete own content; delegated events so buttons work
    =========================================================== */
 
 /* ------------------ Small helpers ------------------ */
@@ -14,8 +14,6 @@ const on = (el,ev,fn)=> el&&el.addEventListener(ev,fn);
 const ready = (fn)=> document.readyState!=='loading'?fn():document.addEventListener('DOMContentLoaded',fn);
 const rand = ()=> Math.random().toString(36).slice(2,9);
 const now = ()=> Date.now();
-const b64 = (ab)=> btoa(String.fromCharCode(...new Uint8Array(ab)));
-const textEnc = (s)=> btoa(unescape(encodeURIComponent(s)));
 const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
 function toast(msg){
   let t=document.getElementById('mhToast'); if(!t){
@@ -26,14 +24,14 @@ function toast(msg){
   t.textContent=String(msg); t.style.opacity='1'; setTimeout(()=>{t.style.opacity='0'},4000);
 }
 
-/* ------------------ Session storage keys ------------------ */
+/* ------------------ Session storage ------------------ */
 const SS = { auth:'mh:ss:auth', gh:'mh:ss:gh' };
 const getSS=(k)=>{ try{return JSON.parse(sessionStorage.getItem(k))||null}catch{return null} };
 const setSS=(k,v)=>{ try{sessionStorage.setItem(k,JSON.stringify(v))}catch{} };
 const clrSS=(k)=>{ try{sessionStorage.removeItem(k)}catch{} };
 
 /* ------------------ GitHub API client ------------------ */
-const GH = { owner:'hunter9201', repo:'moments', branch:'main', token:'' }; // default to your Pages repo
+const GH = { owner:'hunter9201', repo:'moments', branch:'main', token:'' };
 function setGH(cfg){ Object.assign(GH,cfg||{}); setSS(SS.gh, GH); }
 const API_HEADERS_BASE = {
   'Accept':'application/vnd.github+json',
@@ -43,7 +41,7 @@ const API_HEADERS_BASE = {
 function ghHeaders(raw=false){
   const h = { ...API_HEADERS_BASE };
   if (raw) h.Accept = 'application/vnd.github.v3.raw';
-  if (GH.token) h.Authorization = 'token '+GH.token; // classic PAT or fine-grained with contents write
+  if (GH.token) h.Authorization = 'token '+GH.token;
   return h;
 }
 const encPath = (path)=> path.split('/').map(encodeURIComponent).join('/');
@@ -79,16 +77,26 @@ async function ghGetSha(path){
 }
 async function ghPutText(path, text, message){
   const sha = await ghGetSha(path);
-  const body = { message, content: textEnc(text), branch: GH.branch };
+  const body = { message, content: btoa(unescape(encodeURIComponent(text))), branch: GH.branch };
   if(sha) body.sha = sha;
   const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encPath(path)}`;
   const res=await ghFetch(url,{ method:'PUT', headers:ghHeaders(false), body: JSON.stringify(body) });
   return res.json();
 }
+
+/* ---- SAFE base64 for binary (no call-stack overflow) ---- */
+function readFileAsBase64(file){
+  return new Promise((resolve,reject)=>{
+    const fr=new FileReader();
+    fr.onload=()=>{ const s=String(fr.result||''); const i=s.indexOf(','); resolve(i>=0? s.slice(i+1): s); };
+    fr.onerror=reject;
+    fr.readAsDataURL(file);
+  });
+}
 async function ghPutBinary(path, file, message){
-  const buf = await file.arrayBuffer();
+  const b64 = await readFileAsBase64(file);
   const sha = await ghGetSha(path);
-  const body = { message, content: b64(buf), branch: GH.branch };
+  const body = { message, content: b64, branch: GH.branch };
   if(sha) body.sha = sha;
   const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encPath(path)}`;
   const res=await ghFetch(url,{ method:'PUT', headers:ghHeaders(false), body: JSON.stringify(body) });
@@ -128,13 +136,8 @@ function guessMime(name=''){
   return 'application/octet-stream';
 }
 async function mediaURLFromPath(path){
-  // 1) Try public Pages (same repo) — fastest & no token required
   const url = pagesURLFromPath(path);
-  try {
-    const ping = await fetch(url, { method:'GET', cache:'no-store' });
-    if (ping.ok) return url;
-  } catch(_) {}
-  // 2) Fallback to Git Data blob
+  try { const ping = await fetch(url, { method:'GET', cache:'no-store' }); if (ping.ok) return url; } catch(_) {}
   const meta = await ghGet(path,false);
   const sha = meta.sha, name = meta.name || '';
   const blobRes = await ghFetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}/git/blobs/${sha}`);
@@ -149,13 +152,13 @@ async function mediaURLFromPath(path){
 
 /* ------------------ App State ------------------ */
 const STORY_TTL = 48*60*60*1000; // 48h
-let momSelected=[];                      // selected files (max 4)
+let momSelected=[];                      // selected up to 4
 let currentThreadWith=null;              // handle
 let allowedUsersCache=null;              // {users:[...]}
 let momentsCache=[];                     // moments
 let storiesCache=[];                     // stories
 
-/* ------------------ UI chrome & modals ------------------ */
+/* ------------------ UI shell (auth/settings/connect/studio) ------------------ */
 function ensureUIChrome(){
   const area = document.querySelector('header .flex.items-center.gap-2');
   if(area && !byId('signInBtn')){
@@ -199,7 +202,7 @@ function ensureUIChrome(){
           <input id="rgAvatar"  class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Avatar URL (optional)"/>
           <textarea id="rgBio" rows="2" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Bio (optional)"></textarea>
           <button id="regSubmit" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Sign up</button>
-          <small class="text-black/60">Requires a valid PAT connection (Connect).</small>
+          <small class="text-black/60">Requires a PAT connection (Connect).</small>
         </div>
       </div>`;
     document.body.appendChild(m);
@@ -288,14 +291,14 @@ function applyUserToUI(u){
   }
 }
 
-/* ------------------ Tabs & Search ------------------ */
+/* ------------------ Tabs / Search ------------------ */
 function switchTab(t){ ['home','moments','chat','profile'].forEach(k=> byId('tab-'+k).classList.toggle('hidden',k!==t)); }
 function bindTabs(){ document.addEventListener('click',(e)=>{ const b=e.target.closest('[data-tab]'); if(!b) return; switchTab(b.dataset.tab); }); }
 function bindSearch(){
   const s=byId('search'); on(s,'input',()=>{ const q=(s.value||'').toLowerCase().trim(); Array.from(document.querySelectorAll('[data-searchable]')).forEach(n=>{ n.style.display=(n.dataset.searchable||'').includes(q)?'':''; }); });
 }
 
-/* ------------------ HEIC normalize ------------------ */
+/* ------------------ File normalize (HEIC->JPEG if lib present) ------------------ */
 async function normalizeFile(file){
   try{
     if ((/^image\/heic$/i.test(file.type)) || /\.heic$/i.test(file.name)) {
@@ -308,14 +311,17 @@ async function normalizeFile(file){
   return file;
 }
 
-/* ------------------ GH-backed Stories/Moments ------------------ */
+/* ------------------ Data model — Moments / Stories ------------------ */
+let momentsCache=[], storiesCache=[];
+const STORY_TTL = 48*60*60*1000;
+
 async function ghLoadMoments(){
   const me=getUser(); if(!me){ momentsCache=[]; return []; }
   const folders = await ghListDir('moments');
   const files = [];
   for(const f of folders){ if(f.type==='dir'){ const inside=await ghListDir(f.path); inside.forEach(x=> x.type==='file' && x.name.endsWith('.json') && files.push(x)); } }
   const metas = [];
-  for(const f of files){ try{ metas.push(await ghGetJSON(f.path)); }catch(e){ /* skip */ } }
+  for(const f of files){ try{ metas.push(await ghGetJSON(f.path)); }catch{} }
   metas.sort((a,b)=> (b.created||0)-(a.created||0));
   momentsCache = metas;
 }
@@ -325,7 +331,7 @@ async function ghLoadStories(){
   const files = [];
   for(const f of folders){ if(f.type==='dir'){ const inside=await ghListDir(f.path); inside.forEach(x=> x.type==='file' && x.name.endsWith('.json') && files.push(x)); } }
   const metas = [];
-  for(const f of files){ try{ metas.push(await ghGetJSON(f.path)); }catch(e){ /* skip */ } }
+  for(const f of files){ try{ metas.push(await ghGetJSON(f.path)); }catch{} }
   const nowTs=now();
   storiesCache = metas.filter(s=> (nowTs-(s.created||0))<STORY_TTL).sort((a,b)=> (b.created||0)-(a.created||0));
 }
@@ -514,7 +520,7 @@ function openStoryViewer(list, startIndex){
   render();
 }
 
-/* ------------------ Compose & Upload ------------------ */
+/* ------------------ Composer ------------------ */
 function bindComposer(){
   const momInput=byId('momFile'); if(momInput && !momInput.__bound__){
     momInput.__bound__=true;
@@ -599,7 +605,7 @@ function openStudio(idx){
   };
 }
 
-/* ------------------ Chat (GitHub-backed) ------------------ */
+/* ------------------ Chat (GH-backed) ------------------ */
 function threadIdFor(a,b){ return [a,b].sort().join('__'); }
 async function ghLoadThread(a,b){
   const tid=threadIdFor(a,b);
@@ -704,8 +710,9 @@ function openSettings(){ const u=getUser()||{}; byId('stDisplay').value=u.displa
 function closeSettings(){ byId('settingsModal').classList.add('hidden'); }
 
 /* ------------------ Self-Registration ------------------ */
+function normHandleStrict(h){ return normHandle(h); }
 async function registerUser(handle, display, avatar, bio){
-  handle = normHandle(handle); if(!handle) throw new Error('Invalid handle');
+  handle = normHandleStrict(handle); if(!handle) throw new Error('Invalid handle');
   display = (display||handle).trim(); avatar=(avatar||'').trim(); bio=(bio||'').trim();
   for(let attempt=0; attempt<3; attempt++){
     const usersDoc = await ghGetJSON('users/users.json');
@@ -742,7 +749,7 @@ async function refreshAll(){
 ready(async ()=>{
   ensureUIChrome();
 
-  // Delegated clicks (so buttons never feel "static")
+  // Delegated clicks
   document.addEventListener('click', (e)=>{
     const sel = (s)=> e.target.closest(s);
     if (sel('#connectGitHub')) { e.preventDefault(); openConnect(); return; }
