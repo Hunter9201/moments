@@ -1,16 +1,11 @@
 /* ===========================================================
-   Moments — GH Pages Hub
-   - Default repo: owner= hunter9201, repo= moments, branch= main
-   - GitHub PAT connect (sessionStorage)
-   - Self sign-up writes to users/users.json
-   - Only registered users can post/view
-   - Images/videos only (HEIC auto→JPEG)
-   - Stories expire after 48h
-   - Moments/Stories: up to 4 files per post
-   - Autoplay feed; J/K navigation
-   - Chat with unread counts; delete posts/messages
-   - Robust media display: Pages URL first, Git Blob fallback
-   - Delegated events; no recursion (no call stack errors)
+   Moments — GH Pages Hub (Fixed)
+   - Fix: path encoding per segment (no users%2Fusers.json)
+   - Fix: headers (User-Agent, Api Version)
+   - Media: Pages-first, Blob fallback
+   - Features: signup/login, verified-only posting, stories(48h),
+               moments, chat with unread counts, deletes,
+               images/videos only, HEIC->JPEG, up to 4 files
    =========================================================== */
 
 /* ------------------ Small helpers ------------------ */
@@ -28,7 +23,7 @@ function toast(msg){
     t.style.cssText='position:fixed;right:12px;bottom:12px;z-index:99999;background:#111;color:#fff;padding:10px 12px;border-radius:10px;font:12px/1.3 system-ui;box-shadow:0 6px 24px rgba(0,0,0,.25)';
     document.body.appendChild(t);
   }
-  t.textContent=String(msg); t.style.opacity='1'; setTimeout(()=>{t.style.opacity='0'},3200);
+  t.textContent=String(msg); t.style.opacity='1'; setTimeout(()=>{t.style.opacity='0'},4000);
 }
 
 /* ------------------ Session storage keys ------------------ */
@@ -38,15 +33,32 @@ const setSS=(k,v)=>{ try{sessionStorage.setItem(k,JSON.stringify(v))}catch{} };
 const clrSS=(k)=>{ try{sessionStorage.removeItem(k)}catch{} };
 
 /* ------------------ GitHub API client ------------------ */
-const GH = { owner:'hunter9201', repo:'moments', branch:'main', token:'' }; // <- default to the Pages repo
+const GH = { owner:'hunter9201', repo:'moments', branch:'main', token:'' }; // default to your Pages repo
 function setGH(cfg){ Object.assign(GH,cfg||{}); setSS(SS.gh, GH); }
+const API_HEADERS_BASE = {
+  'Accept':'application/vnd.github+json',
+  'User-Agent':'momentshub',
+  'X-GitHub-Api-Version':'2022-11-28'
+};
 function ghHeaders(raw=false){
-  return { 'Authorization':'token '+GH.token, 'Accept': raw?'application/vnd.github.v3.raw':'application/vnd.github+json' };
+  const h = { ...API_HEADERS_BASE };
+  if (raw) h.Accept = 'application/vnd.github.v3.raw';
+  if (GH.token) h.Authorization = 'token '+GH.token; // classic PAT or fine-grained with contents write
+  return h;
+}
+const encPath = (path)=> path.split('/').map(encodeURIComponent).join('/');
+
+async function ghFetch(url, opts={}){
+  const res = await fetch(url, { ...opts, headers: { ...(opts.headers||{}), ...ghHeaders(false) } });
+  if (!res.ok) {
+    const detail = await res.text().catch(()=> '');
+    throw new Error(`GitHub ${opts.method||'GET'} ${url} ${res.status} ${detail.slice(0,200)}`);
+  }
+  return res;
 }
 async function ghGet(path, raw=false){
-  const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(GH.branch)}`;
-  const res=await fetch(url,{headers:ghHeaders(raw)});
-  if(!res.ok) throw new Error(`GitHub GET ${path} ${res.status}`);
+  const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encPath(path)}?ref=${encodeURIComponent(GH.branch)}`;
+  const res= await ghFetch(url, { headers: ghHeaders(raw) });
   return raw? res : res.json();
 }
 async function ghGetJSON(path){
@@ -69,9 +81,8 @@ async function ghPutText(path, text, message){
   const sha = await ghGetSha(path);
   const body = { message, content: textEnc(text), branch: GH.branch };
   if(sha) body.sha = sha;
-  const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}`;
-  const res=await fetch(url,{ method:'PUT', headers:ghHeaders(false), body: JSON.stringify(body) });
-  if(!res.ok) throw new Error(`GitHub PUT ${path} ${res.status}`);
+  const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encPath(path)}`;
+  const res=await ghFetch(url,{ method:'PUT', headers:ghHeaders(false), body: JSON.stringify(body) });
   return res.json();
 }
 async function ghPutBinary(path, file, message){
@@ -79,25 +90,26 @@ async function ghPutBinary(path, file, message){
   const sha = await ghGetSha(path);
   const body = { message, content: b64(buf), branch: GH.branch };
   if(sha) body.sha = sha;
-  const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}`;
-  const res=await fetch(url,{ method:'PUT', headers:ghHeaders(false), body: JSON.stringify(body) });
-  if(!res.ok) throw new Error(`GitHub PUT bin ${path} ${res.status}`);
+  const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encPath(path)}`;
+  const res=await ghFetch(url,{ method:'PUT', headers:ghHeaders(false), body: JSON.stringify(body) });
   return res.json();
 }
 async function ghDelete(path, message){
   const sha = await ghGetSha(path);
   if(!sha) return;
-  const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}`;
-  const res=await fetch(url,{ method:'DELETE', headers:ghHeaders(false), body: JSON.stringify({message, sha, branch:GH.branch}) });
-  if(!res.ok) throw new Error(`GitHub DEL ${path} ${res.status}`);
+  const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encPath(path)}`;
+  await ghFetch(url,{ method:'DELETE', headers:ghHeaders(false), body: JSON.stringify({message, sha, branch:GH.branch}) });
 }
 async function ghListDir(path){
-  const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(GH.branch)}`;
-  const res=await fetch(url,{headers:ghHeaders(false)});
-  if(res.status===404) return [];
-  if(!res.ok) throw new Error(`GitHub LIST ${path} ${res.status}`);
-  const arr = await res.json();
-  return Array.isArray(arr) ? arr : [];
+  const url=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encPath(path)}?ref=${encodeURIComponent(GH.branch)}`;
+  try{
+    const res=await ghFetch(url,{ headers:ghHeaders(false) });
+    const arr = await res.json();
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){
+    if(String(e.message||'').includes('404')) return [];
+    throw e;
+  }
 }
 
 /* ------ Media URL: Pages first, then Git Blob fallback ------ */
@@ -119,15 +131,14 @@ async function mediaURLFromPath(path){
   // 1) Try public Pages (same repo) — fastest & no token required
   const url = pagesURLFromPath(path);
   try {
-    const head = await fetch(url, { method:'HEAD', cache:'no-store' });
-    if (head.ok) return url;
+    const ping = await fetch(url, { method:'GET', cache:'no-store' });
+    if (ping.ok) return url;
   } catch(_) {}
-  // 2) Fallback to Git Data blob (no redirect/CORS issues)
+  // 2) Fallback to Git Data blob
   const meta = await ghGet(path,false);
   const sha = meta.sha, name = meta.name || '';
-  const res = await fetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}/git/blobs/${sha}`, { headers: ghHeaders(false) });
-  if(!res.ok) throw new Error(`Git blob ${sha} ${res.status}`);
-  const blobJson = await res.json();
+  const blobRes = await ghFetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}/git/blobs/${sha}`);
+  const blobJson = await blobRes.json();
   const b64data = (blobJson.content || '').replace(/\n/g,'');
   const bin = atob(b64data);
   const bytes = new Uint8Array(bin.length);
@@ -146,7 +157,6 @@ let storiesCache=[];                     // stories
 
 /* ------------------ UI chrome & modals ------------------ */
 function ensureUIChrome(){
-  // Auth buttons injected to header right group
   const area = document.querySelector('header .flex.items-center.gap-2');
   if(area && !byId('signInBtn')){
     const si=document.createElement('button'); si.id='signInBtn'; si.type='button'; si.textContent='Sign in';
@@ -159,7 +169,6 @@ function ensureUIChrome(){
     pill.innerHTML=`<img id="userAvatar" class="hidden h-7 w-7 rounded-full border border-black/10"><span id="userName" class="hidden text-xs font-semibold"></span>`;
     area.appendChild(si); area.appendChild(su); area.appendChild(lo); area.appendChild(pill);
   }
-  // Modals (Auth / Sign up / Settings / Connect / Story viewer / Studio)
   if(!byId('authModal')){
     const m=document.createElement('div'); m.id='authModal'; m.className='hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4';
     m.innerHTML=`
@@ -295,7 +304,7 @@ async function normalizeFile(file){
         return new File([blob], file.name.replace(/\.heic$/i,'.jpg'), { type: 'image/jpeg' });
       }
     }
-  }catch{ /* ignore, fallback to original */ }
+  }catch{ /* ignore */ }
   return file;
 }
 
@@ -306,7 +315,7 @@ async function ghLoadMoments(){
   const files = [];
   for(const f of folders){ if(f.type==='dir'){ const inside=await ghListDir(f.path); inside.forEach(x=> x.type==='file' && x.name.endsWith('.json') && files.push(x)); } }
   const metas = [];
-  for(const f of files){ try{ metas.push(await ghGetJSON(f.path)); }catch{} }
+  for(const f of files){ try{ metas.push(await ghGetJSON(f.path)); }catch(e){ /* skip */ } }
   metas.sort((a,b)=> (b.created||0)-(a.created||0));
   momentsCache = metas;
 }
@@ -316,7 +325,7 @@ async function ghLoadStories(){
   const files = [];
   for(const f of folders){ if(f.type==='dir'){ const inside=await ghListDir(f.path); inside.forEach(x=> x.type==='file' && x.name.endsWith('.json') && files.push(x)); } }
   const metas = [];
-  for(const f of files){ try{ metas.push(await ghGetJSON(f.path)); }catch{} }
+  for(const f of files){ try{ metas.push(await ghGetJSON(f.path)); }catch(e){ /* skip */ } }
   const nowTs=now();
   storiesCache = metas.filter(s=> (nowTs-(s.created||0))<STORY_TTL).sort((a,b)=> (b.created||0)-(a.created||0));
 }
@@ -528,7 +537,7 @@ function bindComposer(){
       const norm=[]; for(const f of raw){ const ff=await normalizeFile(f); norm.push(ff); }
       const files=norm.filter(f=> /^image\/|^video\//.test(f.type));
       let ok=0, bad=0;
-      for(const f of files){ try{ await ghCreateStory(me.handle, me, f); ok++; }catch{ bad++; } await sleep(50); }
+      for(const f of files){ try{ await ghCreateStory(me.handle, me, f); ok++; }catch(err){ bad++; toast(err.message);} await sleep(50); }
       stoInput.value='';
       if(ok) toast(`Added ${ok} stor${ok>1?'ies':'y'} ✓`);
       if(bad) toast(`${bad} failed`);
@@ -542,7 +551,7 @@ function bindComposer(){
     const tags=(byId('momTags').value||'').split(',').map(s=>s.trim().replace(/^#/,'')).filter(Boolean);
     let ok=0, fail=0;
     for(const it of momSelected){
-      try{ await ghCreateMoment(me.handle, me, it.file, caption, tags); ok++; }catch{ fail++; }
+      try{ await ghCreateMoment(me.handle, me, it.file, caption, tags); ok++; }catch(err){ fail++; toast(err.message); }
       await sleep(50);
     }
     momSelected=[]; drawThumbs();
@@ -733,7 +742,7 @@ async function refreshAll(){
 ready(async ()=>{
   ensureUIChrome();
 
-  // Global delegated clicks: buttons always work
+  // Delegated clicks (so buttons never feel "static")
   document.addEventListener('click', (e)=>{
     const sel = (s)=> e.target.closest(s);
     if (sel('#connectGitHub')) { e.preventDefault(); openConnect(); return; }
@@ -747,17 +756,14 @@ ready(async ()=>{
     if (sel('#connectClose')) { e.preventDefault(); closeConnect(); return; }
   });
 
-  // Nav, search, keyboard, composer, chat send
   bindTabs(); bindSearch(); bindKeyboardNav(); bindComposer();
   on(byId('chatSend'),'click', sendChatMessage);
 
-  // Settings save
   on(byId('settingsSave'),'click', ()=>{
     const u=getUser()||{}; const next={...u, display:(byId('stDisplay').value||'').trim(), avatar:(byId('stAvatar').value||'').trim(), bio:(byId('stBio').value||'').trim()};
     setUser(next); toast('Saved');
   });
 
-  // Connect save
   on(byId('connectSave'),'click', async ()=>{
     const owner=(byId('ghOwner').value||'').trim();
     const repo=(byId('ghRepo').value||'').trim();
@@ -772,7 +778,6 @@ ready(async ()=>{
     }catch(e){ toast(e.message||'Connect failed'); }
   });
 
-  // Auth submit
   on(byId('authSubmit'),'click', async ()=>{
     try{
       const h = normHandle((byId('auHandle').value||'').trim()); if(!h) return;
@@ -786,7 +791,6 @@ ready(async ()=>{
     }catch(e){ toast(e.message||'Auth failed'); }
   });
 
-  // Sign up submit
   on(byId('regSubmit'),'click', async ()=>{
     try{
       if(!GH.token){ openConnect(); toast('Connect with PAT first'); return; }
@@ -802,7 +806,7 @@ ready(async ()=>{
     }catch(e){ toast(e.message||'Sign up failed'); }
   });
 
-  // Existing GH config?
+  // Load saved GH config or ask to connect
   const ghCfg=getSS(SS.gh);
   if (!ghCfg || !ghCfg.token) {
     setTimeout(() => openConnect(), 0);
@@ -813,6 +817,5 @@ ready(async ()=>{
     await refreshAll();
   }
 
-  // Default tab
   switchTab('home');
 });
