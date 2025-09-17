@@ -1,5 +1,9 @@
 [
   {
+    "login": "Hunter9201",
+    "display_name": "King"
+  },
+  {
     "login": "suubi",
     "display_name": "suubi",
     "avatar_url": ""
@@ -8,9 +12,5 @@
     "login": "arthur",
     "display_name": "arthur",
     "avatar_url": ""
-  },
-  {
-    "login": "Hunter9201",
-    "display_name": "King"
   }
 ]
