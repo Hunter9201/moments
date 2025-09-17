@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Moments — Pages-only Social</title>
-  <meta name="description" content="Profiles, reels, stories, DMs, groups, hashtags, editor — single GitHub Pages repo, no servers." />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html,body{height:100%}
@@ -12,8 +11,8 @@
       radial-gradient(1100px 500px at 10% -10%, rgba(59,130,246,.10), transparent),
       radial-gradient(1000px 500px at 90% -10%, rgba(217,70,239,.10), transparent)}
     .card{box-shadow:0 10px 30px rgba(2,6,23,.06)}
-    .chip{font-size:.72rem;padding:.2rem .6rem;border-radius:999px;background:rgba(0,0,0,.08)}
     .btn{border:1px solid rgba(0,0,0,.1);background:#fff;padding:.42rem .7rem;border-radius:.75rem;box-shadow:0 1px 2px rgba(0,0,0,.06);font-size:.85rem}
+    .chip{font-size:.72rem;padding:.2rem .6rem;border-radius:999px;background:rgba(0,0,0,.08)}
     .mom-feed{scroll-snap-type:y mandatory; overflow-y:auto; max-height:85vh}
     .mom-item{scroll-snap-align:center}
     .thumb{aspect-ratio:1/1;object-fit:cover}
@@ -36,7 +35,7 @@
         </div>
         <div class="flex items-center gap-2">
           <input id="search" placeholder="Search…" class="w-56 max-w-[60vw] rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm shadow-sm outline-none placeholder:text-black/40 focus:border-black/20 focus:ring-2 focus:ring-black/10" />
-          <button id="btnSignIn" class="btn">🔐 Sign in</button>
+          <button id="btnOpenAuth" class="btn">🔐 Sign in / Sign up</button>
           <span id="userBadge" class="hidden btn"></span>
           <button id="btnSignOut" class="hidden btn">Sign out</button>
           <button id="openSettings" class="btn">⚙</button>
@@ -67,15 +66,13 @@
 
     <!-- MOMENTS -->
     <section id="tab-moments" class="hidden space-y-4">
-
-      <!-- Stories row -->
+      <!-- Stories -->
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="flex items-center justify-between">
           <div class="text-xs uppercase tracking-widest text-black/50">Stories (48h)</div>
           <div class="flex gap-2">
-            <label class="btn cursor-pointer">
-              ➕ Add Stories (up to 4)
-              <input id="storyFiles" type="file" accept="video/*,image/*" multiple class="hidden">
+            <label class="btn cursor-pointer">➕ Add Stories (up to 4)
+              <input id="storyFiles" type="file" multiple class="hidden">
             </label>
             <button id="myStories" class="btn">My Stories</button>
           </div>
@@ -89,8 +86,8 @@
         <div class="order-2 lg:order-1 lg:col-span-1 rounded-2xl border border-black/10 bg-white/80 p-4 card h-max">
           <div class="text-xs uppercase tracking-widest text-black/50">Create a Moment</div>
           <div class="mt-3 grid gap-2 text-sm">
-            <label class="btn cursor-pointer">📤 Upload media (video OR up to 4 images)
-              <input id="momFiles" type="file" accept="video/*,image/*" multiple class="hidden">
+            <label class="btn cursor-pointer">📤 Upload media (video OR up to 4 images or files)
+              <input id="momFiles" type="file" multiple class="hidden">
             </label>
             <div id="momThumbs" class="grid grid-cols-4 gap-2"></div>
             <div class="flex gap-2">
@@ -104,7 +101,6 @@
               <button id="momPost" class="btn">Post Moment</button>
               <button id="saveDraft" class="btn">Save Draft</button>
             </div>
-            <small class="text-black/50">Uploads and data live in this repo (GitHub Pages).</small>
           </div>
         </div>
 
@@ -119,7 +115,7 @@
       </div>
     </section>
 
-    <!-- EXPLORE (hashtags) -->
+    <!-- EXPLORE -->
     <section id="tab-explore" class="hidden space-y-6">
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="flex items-center justify-between">
@@ -137,8 +133,6 @@
     <!-- COMMUNICATION -->
     <section id="tab-chat" class="hidden space-y-6">
       <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-
-        <!-- DMs -->
         <div class="md:col-span-2 rounded-2xl border border-black/10 bg-white/80 p-4 card">
           <div class="flex items-center justify-between">
             <div>
@@ -149,23 +143,20 @@
           </div>
           <div id="chatLog" class="mt-3 h-72 overflow-y-auto rounded-xl border border-black/5 bg-white/70 p-3 text-sm"></div>
           <div class="mt-3 flex gap-2">
-            <input id="chatMsg" class="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10" placeholder="Type a message…" />
+            <input id="chatMsg" class="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="Type a message…" />
             <button id="chatSend" class="btn">Send</button>
           </div>
         </div>
-
-        <!-- People -->
         <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
           <div class="text-xs uppercase tracking-widest text-black/50">People</div>
           <div class="mt-3 grid gap-2 text-sm">
-            <input id="peopleSearch" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Search people (name or @login)" />
+            <input id="peopleSearch" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Search people (name or @handle)" />
             <div id="peopleList" class="mt-1 grid gap-2 max-h-72 overflow-y-auto"></div>
-            <small class="text-black/50">Users appear after they sign up (create profile).</small>
+            <small class="text-black/50">App accounts (handle + PIN) live in the repo.</small>
           </div>
         </div>
       </div>
 
-      <!-- Groups -->
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="flex items-center justify-between">
           <div class="text-xs uppercase tracking-widest text-black/50">Group Chats</div>
@@ -199,7 +190,6 @@
 
     <!-- PROFILE -->
     <section id="tab-profile" class="hidden space-y-6">
-      <!-- Me -->
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="text-xs uppercase tracking-widest text-black/50">Your Profile</div>
         <div class="mt-3 grid gap-3 text-sm md:grid-cols-2">
@@ -215,7 +205,7 @@
             <input id="profDisplayName" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="Display name">
             <div class="flex items-center gap-2">
               <label class="btn cursor-pointer">Upload avatar
-                <input id="avatarFile" type="file" accept="image/*" class="hidden">
+                <input id="avatarFile" type="file" class="hidden">
               </label>
               <button id="profSave" class="btn">Save Profile</button>
             </div>
@@ -223,7 +213,7 @@
         </div>
       </div>
 
-      <!-- Admin Panel (owner/admins only) -->
+      <!-- Admin Panel -->
       <div id="adminPanel" class="hidden rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="text-xs uppercase tracking-widest text-black/50">Admin Panel</div>
         <div class="mt-3 grid gap-3 md:grid-cols-3 text-sm">
@@ -231,7 +221,7 @@
             <div class="font-semibold">Banlist</div>
             <div id="banList" class="mt-1 space-y-1"></div>
             <div class="flex gap-2 mt-2">
-              <input id="banUser" class="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="@login">
+              <input id="banUser" class="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="@handle">
               <button id="banAdd" class="btn">Ban</button>
             </div>
           </div>
@@ -239,7 +229,7 @@
             <div class="font-semibold">Allowlist/Admins</div>
             <div id="allowList" class="mt-1 space-y-1"></div>
             <div class="flex gap-2 mt-2">
-              <input id="allowUser" class="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="@login">
+              <input id="allowUser" class="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm" placeholder="@handle">
               <button id="allowAdd" class="btn">Allow</button>
             </div>
           </div>
@@ -256,10 +246,10 @@
     <div>All data is this repo. No servers.</div>
   </footer>
 
-  <!-- Modal (settings / story viewer / confirmations) -->
+  <!-- Modal -->
   <div id="modal" class="hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"></div>
 
-  <!-- Studio Pro Modal -->
+  <!-- Studio Pro -->
   <div id="studio" class="hidden fixed inset-0 z-[60] bg-black/60 p-4">
     <div class="mx-auto max-w-4xl w-full bg-white rounded-2xl shadow p-4">
       <div class="flex items-center justify-between">
@@ -301,161 +291,215 @@
     </div>
   </div>
 
-  <!-- 👉👉 Paste PART 2 (script) right before </body> -->
+  <!-- 👉 Paste PART 2 (script) right before </body> -->
 <script>
-/* =========================================================================
+/* ===========================================================
    Moments — Pages-only Social (single repo)
-   Repo: hunter9201/moments | Pages: https://hunter9201.github.io/moments
-   ========================================================================= */
+   Repo/Pages: https://github.com/hunter9201/moments
+   =========================================================== */
 const GH = { owner:'hunter9201', repo:'moments', pagesBase:'https://hunter9201.github.io/moments' };
 
-/* ----------------- helpers ----------------- */
+/* ---------- small helpers (no recursion, guarded) ---------- */
 const S = { cfg:'mh:cfg', draft:'mh:draft' };
-const $ = (id)=>document.getElementById(id);
-const get = (k,d)=>{ try{const v=JSON.parse(localStorage.getItem(k)); return v??d}catch{return d} };
-const set = (k,v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)) }catch{} };
-const token = ()=> (get(S.cfg,{}).gh_pat||'').trim();
-const b64e = (s)=> btoa(unescape(encodeURIComponent(s)));
-const b64d = (s)=> { try{ return decodeURIComponent(escape(atob(s.replace(/\n/g,'')))) }catch{ return atob(s.replace(/\n/g,'')) } };
-const rand = ()=> Math.random().toString(36).slice(2,9);
+const $  = (id)=>document.getElementById(id);
+const get= (k,d)=>{ try{ const v=JSON.parse(localStorage.getItem(k)); return v??d }catch{ return d } };
+const set= (k,v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)) }catch{} };
+const rand= ()=> Math.random().toString(36).slice(2,9);
 const nowISO = ()=> new Date().toISOString();
 const pagesURL = (p)=> `${GH.pagesBase}/${p.replace(/^\/+/,'')}`;
 const clamp = (v,min,max)=> Math.max(min, Math.min(max, v));
-const isOwner = (login)=> login===GH.owner;
+const token = ()=> (get(S.cfg,{}).gh_pat||'').trim();
+const active = ()=> ({ handle:get(S.cfg,{}).handle||'', name:get(S.cfg,{}).name||'', avatar:get(S.cfg,{}).avatar||'' });
 
-/* ----------------- GitHub API ----------------- */
-async function api(path, opts={}) {
-  const h = { 'Accept':'application/vnd.github+json' };
-  if(token()) h['Authorization'] = `token ${token()}`;
-  const r = await fetch(`https://api.github.com${path}`, { ...opts, headers:{...h, ...(opts.headers||{})} });
+/* safer base64 (no escape/unescape) */
+const b64e = (s)=> btoa(unescape(encodeURIComponent(s)));
+const b64d = (s)=> decodeURIComponent(escape(atob((s||'').replace(/\n/g,''))));
+
+/* ---------- GitHub API (single-branch, cached) ---------- */
+async function api(path, opts={}){
+  const headers = { 'Accept':'application/vnd.github+json' };
+  if(token()) headers['Authorization'] = `token ${token()}`;
+  const r = await fetch(`https://api.github.com${path}`, { ...opts, headers:{...headers, ...(opts.headers||{})} });
   if(!r.ok) throw new Error(`${opts.method||'GET'} ${path} → ${r.status}`);
   return r.json();
 }
 async function defaultBranch(){
-  const ck='mh:defbranch'; const c=localStorage.getItem(ck); if(c) return c;
-  const j = await api(`/repos/${GH.owner}/${GH.repo}`); const b=j.default_branch||'main';
-  localStorage.setItem(ck,b); return b;
+  const key='mh:defbranch'; const cached=localStorage.getItem(key); if(cached) return cached;
+  const j=await api(`/repos/${GH.owner}/${GH.repo}`); const b=j.default_branch||'main';
+  localStorage.setItem(key,b); return b;
 }
 async function getFile(path){
   try{
-    const br = await defaultBranch();
-    const j = await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(br)}`);
+    const br=await defaultBranch();
+    const j=await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(br)}`);
     if(j && j.content){ const t=b64d(j.content); try{ return { sha:j.sha, text:t, json: JSON.parse(t) } }catch{ return { sha:j.sha, text:t, json:null } } }
     return { sha:j.sha, text:null, json:null };
   }catch(e){ if(String(e).includes('404')) return null; throw e }
 }
 async function putJson(path, obj, msg){
-  const br = await defaultBranch();
-  const cur = await getFile(path);
-  const body = { message: msg||`update ${path}`, content: b64e(JSON.stringify(obj,null,2)), branch: br };
-  if(cur && cur.sha) body.sha = cur.sha;
-  await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}`, { method:'PUT', body: JSON.stringify(body) });
-  return true;
+  const br=await defaultBranch(); const cur=await getFile(path);
+  const body={ message:msg||`update ${path}`, content:b64e(JSON.stringify(obj,null,2)), branch:br };
+  if(cur && cur.sha) body.sha=cur.sha;
+  await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}`, { method:'PUT', body:JSON.stringify(body) });
 }
 async function putFile(path, file, msg){
-  const br = await defaultBranch();
-  const buf = await file.arrayBuffer();
-  const content = btoa(String.fromCharCode(...new Uint8Array(buf)));
-  const cur = await getFile(path);
-  const body = { message: msg||`upload ${path}`, content, branch: br };
-  if(cur && cur.sha) body.sha = cur.sha;
-  await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}`, { method:'PUT', body: JSON.stringify(body) });
+  const br=await defaultBranch();
+  const buf=await file.arrayBuffer();
+  const content=btoa(String.fromCharCode(...new Uint8Array(buf)));
+  const cur=await getFile(path);
+  const body={ message:msg||`upload ${path}`, content, branch:br };
+  if(cur && cur.sha) body.sha=cur.sha;
+  await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}`, { method:'PUT', body:JSON.stringify(body) });
   return pagesURL(path);
 }
 async function delPath(path, sha, msg){
-  const br = await defaultBranch();
-  await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}`, { method:'DELETE', body: JSON.stringify({ message: msg||`delete ${path}`, sha, branch: br }) });
+  const br=await defaultBranch();
+  await api(`/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}`, { method:'DELETE', body:JSON.stringify({ message:msg||`delete ${path}`, sha, branch:br }) });
 }
-function urlToRepoPath(url){
-  try{
-    if(!url.startsWith(GH.pagesBase)) return null;
-    return url.replace(GH.pagesBase+'/','');
-  }catch{ return null }
-}
+function urlToRepoPath(url){ try{ if(!url.startsWith(GH.pagesBase)) return null; return url.replace(GH.pagesBase+'/','') }catch{ return null } }
 
-/* ----------------- Auth / Profile ----------------- */
-async function ghMe(){
-  if(!token()) return null;
-  const r = await fetch('https://api.github.com/user', { headers:{'Authorization':`token ${token()}`} });
-  if(!r.ok) return null; return r.json();
+/* ---------- App Accounts (handle + PIN) ---------- */
+async function sha256Hex(s){
+  const buf=new TextEncoder().encode(s);
+  const hash=await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b=> b.toString(16).padStart(2,'0')).join('');
+}
+async function profilesIndex(){ return await fetchJson(pagesURL('indexes/profiles.json')) || [] }
+async function upsertProfileIndex(p){
+  const idx=await profilesIndex();
+  const next=[{ login:p.login, display_name:p.display_name||p.login, avatar_url:p.avatar_url||'' }, ...idx.filter(x=>x.login!==p.login)];
+  await putJson('indexes/profiles.json', next, `index(profiles): ${p.login}`);
+}
+async function createOrLogin(handle, pin){
+  if(!token()) throw new Error('Add a GitHub PAT (Settings) with Contents: Read & Write.');
+  handle=handle.toLowerCase().replace(/[^a-z0-9_.-]/g,'');
+  const path=`profiles/${handle}.json`;
+  const rec=await getFile(path);
+  const pin_hash=await sha256Hex(pin);
+  if(!rec){ // create
+    const p={ login:handle, display_name:handle, bio:'', avatar_url:'', pin_hash, created_at:nowISO() };
+    await putJson(path, p, `profile: ${handle}`);
+    await upsertProfileIndex(p);
+    set(S.cfg,{...get(S.cfg,{}), handle, name:p.display_name, avatar:''});
+    return p;
+  }else{
+    const p=rec.json||{};
+    if(p.pin_hash!==pin_hash) throw new Error('Wrong PIN for @'+handle);
+    set(S.cfg,{...get(S.cfg,{}), handle, name:p.display_name||handle, avatar:p.avatar_url||''});
+    return p;
+  }
 }
 function renderUserBadge(){
-  const badge=$('userBadge'), out=$('btnSignOut'), inn=$('btnSignIn');
-  const cfg=get(S.cfg,{});
-  if(cfg.gh_login){ badge.textContent='@'+cfg.gh_login; badge.classList.remove('hidden'); out.classList.remove('hidden'); inn.classList.add('hidden') }
-  else{ badge.classList.add('hidden'); out.classList.add('hidden'); inn.classList.remove('hidden') }
+  const u=active();
+  const badge=$('userBadge'), out=$('btnSignOut'), auth=$('btnOpenAuth');
+  if(u.handle){ badge.textContent='@'+u.handle; badge.classList.remove('hidden'); out.classList.remove('hidden'); auth.classList.add('hidden'); }
+  else{ badge.classList.add('hidden'); out.classList.add('hidden'); auth.classList.remove('hidden'); }
 }
-async function ensureProfile(){
-  const me = await ghMe(); if(!me) throw new Error('Paste a fine-grained PAT with Contents: Read & Write for this repo.');
-  const login = me.login;
-  const path = `profiles/${login}.json`;
-  const cur = await getFile(path);
-  const p = cur?.json || { login, display_name: me.name||login, bio:'', avatar_url: me.avatar_url||'', created_at: nowISO() };
-  await putJson(path, p, `profile: ${login}`);
-  const idxPath = 'indexes/profiles.json';
-  const idxCur = await getFile(idxPath); let arr = Array.isArray(idxCur?.json)? idxCur.json: [];
-  arr = [{ login, display_name: p.display_name, avatar_url: p.avatar_url }, ...arr.filter(x=>x.login!==login)];
-  await putJson(idxPath, arr, `index(profiles): add ${login}`);
-  set(S.cfg,{...get(S.cfg,{}), gh_login: login, gh_name: p.display_name, gh_avatar: p.avatar_url});
-  renderUserBadge(); loadPeople(); loadProfileUI(); checkAdmin();
-}
-$('btnSignIn').onclick = async ()=>{
-  if(!token()){
-    const pat = prompt('Paste GitHub fine-grained PAT (Contents: Read & Write for this repo)');
-    if(!pat) return; set(S.cfg,{...get(S.cfg,{}), gh_pat: pat.trim()});
+$('btnOpenAuth').onclick = ()=>{
+  const modal=$('modal'); modal.classList.remove('hidden');
+  modal.innerHTML=`
+    <div class='max-w-md w-full rounded-2xl bg-white p-4'>
+      <div class='flex items-center justify-between mb-2'>
+        <div class='text-xs uppercase tracking-widest text-black/50'>Sign in / Sign up</div>
+        <button class='chip' id='authClose'>Close</button>
+      </div>
+      <div class='space-y-3 text-sm'>
+        <label class='block'>GitHub PAT (shared across users)
+          <input id='authPAT' type='password' class='mt-1 w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2' placeholder='ghp_… (Contents: Read & Write)'>
+        </label>
+        <div class='grid grid-cols-2 gap-2'>
+          <input id='authHandle' placeholder='@handle' class='rounded-xl border border-black/10 bg-white/80 px-3 py-2'>
+          <input id='authPIN' placeholder='PIN' type='password' class='rounded-xl border border-black/10 bg-white/80 px-3 py-2'>
+        </div>
+        <div class='flex justify-end gap-2'>
+          <button id='authGo' class='btn'>Create / Sign in</button>
+        </div>
+        <div class='text-xs text-black/60'>Anyone with the PAT can create an app account (handle + PIN). Keep your PIN secret.</div>
+      </div>
+    </div>`;
+  $('authClose').onclick=()=> modal.classList.add('hidden');
+  $('authPAT').value=token();
+  $('authGo').onclick=async ()=>{
+    try{
+      const pat=$('authPAT').value.trim(); const h=$('authHandle').value.trim().replace(/^@/,''); const pin=$('authPIN').value.trim();
+      if(!pat||!h||!pin) return alert('Fill PAT, handle & PIN');
+      set(S.cfg,{...get(S.cfg,{}), gh_pat:pat});
+      await createOrLogin(h, pin);
+      modal.classList.add('hidden'); renderUserBadge(); loadPeople(); loadProfileUI(); checkAdmin(); renderFeeds();
+      alert('Signed in as @'+h+' ✓');
+    }catch(e){ alert(e.message||String(e)) }
   }
-  try{ await ensureProfile(); alert('Signed in ✓'); }catch(e){ alert(e.message||String(e)) }
 };
-$('btnSignOut').onclick = ()=>{ set(S.cfg,{...get(S.cfg,{}), gh_pat:'', gh_login:'', gh_name:'', gh_avatar:''}); renderUserBadge(); alert('Signed out'); };
+$('btnSignOut').onclick=()=>{ set(S.cfg,{...get(S.cfg,{}), handle:'', name:'', avatar:''}); renderUserBadge(); alert('Signed out'); };
 renderUserBadge();
 
-async function loadProfileUI(){
-  const me=get(S.cfg,{}).gh_login; if(!me){ $('profName').textContent='Not signed in'; $('profHandle').textContent='—'; $('profAvatar').src=''; return }
-  $('profHandle').textContent='@'+me;
-  const pf=await getFile(`profiles/${me}.json`); const p=pf?.json||{};
-  $('profName').textContent=p.display_name||me;
-  $('profDisplayName').value=p.display_name||'';
-  $('profBio').value=p.bio||'';
-  $('profAvatar').src=p.avatar_url||'';
-}
-$('profSave').onclick = async ()=>{
-  const me=get(S.cfg,{}).gh_login; if(!me) return alert('Sign in first');
-  const pf=await getFile(`profiles/${me}.json`); const p=pf?.json||{ login:me, created_at:nowISO() };
-  p.display_name = $('profDisplayName').value.trim() || p.display_name || me;
-  p.bio = $('profBio').value||'';
-  await putJson(`profiles/${me}.json`, p, `profile update: ${me}`);
-  const idxCur = await getFile('indexes/profiles.json'); let arr=Array.isArray(idxCur?.json)? idxCur.json: [];
-  arr = [{ login:me, display_name:p.display_name, avatar_url:p.avatar_url||'' }, ...arr.filter(x=>x.login!==me)];
-  await putJson('indexes/profiles.json', arr, `index(profiles): update ${me}`);
-  alert('Profile saved ✓'); loadPeople(); loadProfileUI(); renderFeeds();
-};
-$('avatarFile').addEventListener('change', async (e)=>{
-  const me=get(S.cfg,{}).gh_login; if(!me) return alert('Sign in first');
-  const f=e.target.files[0]; if(!f) return;
-  const url = await putFile(`media/avatars/${me}_${Date.now()}.jpg`, f, `avatar: ${me}`);
-  const pf=await getFile(`profiles/${me}.json`); const p=pf?.json||{login:me, created_at:nowISO()};
-  p.avatar_url = url; await putJson(`profiles/${me}.json`, p, `avatar update: ${me}`);
-  const idxCur = await getFile('indexes/profiles.json'); let arr=Array.isArray(idxCur?.json)? idxCur.json: [];
-  arr = [{ login:me, display_name:p.display_name||me, avatar_url:url }, ...arr.filter(x=>x.login!==me)];
-  await putJson('indexes/profiles.json', arr, `index(profiles): avatar ${me}`);
-  $('profAvatar').src=url; set(S.cfg,{...get(S.cfg,{}), gh_avatar:url}); alert('Avatar updated ✓');
-});
-
-/* ----------------- Tabs ----------------- */
+/* ---------- Tabs ---------- */
 const tabs=['home','moments','explore','chat','profile'];
 function switchTab(t){ tabs.forEach(k=> $(`tab-${k}`).classList.toggle('hidden', k!==t)) }
 document.querySelectorAll('.tab-btn').forEach(b=> b.addEventListener('click', ()=> switchTab(b.dataset.tab)));
 switchTab('home');
 
-/* ----------------- Data fetch helpers ----------------- */
-async function fetchJson(url){ try{ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) return null; return r.json(); }catch{ return null } }
-async function profilesIndex(){ const j = await fetchJson(pagesURL('indexes/profiles.json')); return Array.isArray(j)? j:[]; }
-async function hashtagsIndex(){ const j = await fetchJson(pagesURL('indexes/hashtags.json')); return j&&typeof j==='object'? j:{}; }
+/* ---------- Fetch helpers ---------- */
+async function fetchJson(url){ try{ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) return null; return r.json() }catch{ return null } }
 
-/* ----------------- People + DMs ----------------- */
+/* ---------- Profiles UI ---------- */
+async function loadProfileUI(){
+  const u=active(); if(!u.handle){ $('profName').textContent='Not signed in'; $('profHandle').textContent='—'; $('profAvatar').src=''; return }
+  $('profHandle').textContent='@'+u.handle;
+  const pf=await getFile(`profiles/${u.handle}.json`); const p=pf?.json||{};
+  $('profName').textContent=p.display_name||u.handle;
+  $('profDisplayName').value=p.display_name||'';
+  $('profBio').value=p.bio||'';
+  $('profAvatar').src=p.avatar_url||'';
+}
+$('profSave').onclick = async ()=>{
+  const u=active(); if(!u.handle) return alert('Sign in first');
+  const pf=await getFile(`profiles/${u.handle}.json`); const p=pf?.json||{ login:u.handle, created_at:nowISO() };
+  p.display_name=$('profDisplayName').value.trim()||p.display_name||u.handle;
+  p.bio=$('profBio').value||'';
+  await putJson(`profiles/${u.handle}.json`, p, `profile update: ${u.handle}`);
+  await upsertProfileIndex(p);
+  set(S.cfg,{...get(S.cfg,{}), name:p.display_name, avatar:p.avatar_url||''});
+  alert('Profile saved ✓'); loadPeople(); loadProfileUI(); renderFeeds();
+};
+$('avatarFile').addEventListener('change', async (e)=>{
+  const u=active(); if(!u.handle) return alert('Sign in first');
+  const f=e.target.files[0]; if(!f) return;
+  const url=await putFile(`media/avatars/${u.handle}_${Date.now()}.bin`, f, `avatar: ${u.handle}`);
+  const pf=await getFile(`profiles/${u.handle}.json`); const p=pf?.json||{login:u.handle, created_at:nowISO()};
+  p.avatar_url=url; await putJson(`profiles/${u.handle}.json`, p, `avatar update: ${u.handle}`);
+  await upsertProfileIndex(p); $('profAvatar').src=url; set(S.cfg,{...get(S.cfg,{}), avatar:url}); alert('Avatar updated ✓');
+});
+
+/* ---------- Admin / Moderation ---------- */
+async function moderationGet(){
+  const allow=(await getFile('moderation/allowlist.json'))?.json || { admins:[GH.owner] };
+  const ban=(await getFile('moderation/banlist.json'))?.json || { users:[] };
+  const flagged=(await getFile('moderation/flagged.json'))?.json || [];
+  return { allow, ban, flagged };
+}
+async function isAdmin(h){ const {allow}=await moderationGet(); return (allow.admins||[]).includes(h) || h===GH.owner }
+async function isBanned(h){ const {ban}=await moderationGet(); return (ban.users||[]).includes(h) }
+async function checkAdmin(){
+  const h=active().handle; if(!h) return;
+  const adm=await isAdmin(h); $('adminPanel').classList.toggle('hidden', !adm);
+  if(adm) renderModeration();
+}
+async function renderModeration(){
+  const {allow,ban,flagged}=await moderationGet();
+  const bl=$('banList'); bl.innerHTML=(ban.users||[]).map(u=> `<div class="text-sm flex items-center justify-between"><span>@${u}</span><button data-unban="${u}" class="text-xs underline">remove</button></div>`).join('')||'<div class="text-xs text-black/60">—</div>';
+  const al=$('allowList'); al.innerHTML=(allow.admins||[]).map(u=> `<div class="text-sm flex items-center justify-between"><span>@${u}</span><button data-unallow="${u}" class="text-xs underline">remove</button></div>`).join('')||'<div class="text-xs text-black/60">—</div>';
+  const fl=$('flagList'); fl.innerHTML=(flagged||[]).slice(-100).reverse().map(f=> `<div class="text-xs border rounded px-2 py-1">${f.type} • ${f.id} • by @${f.by} • ${new Date(f.ts).toLocaleString()}</div>`).join('')||'<div class="text-xs text-black/60">—</div>';
+  bl.querySelectorAll('[data-unban]').forEach(b=> b.onclick=async()=>{ const u=b.dataset.unban; const data=(await getFile('moderation/banlist.json'))?.json||{users:[]}; data.users=data.users.filter(x=>x!==u); await putJson('moderation/banlist.json', data, `unban ${u}`); renderModeration() });
+  al.querySelectorAll('[data-unallow]').forEach(b=> b.onclick=async()=>{ const u=b.dataset.unallow; const data=(await getFile('moderation/allowlist.json'))?.json||{admins:[GH.owner]}; data.admins=data.admins.filter(x=>x!==u); await putJson('moderation/allowlist.json', data, `rm admin ${u}`); renderModeration() });
+}
+$('banAdd').onclick = async ()=>{ const h=active().handle; if(!h || !(await isAdmin(h))) return alert('Admins only'); const u=$('banUser').value.trim().replace(/^@/,''); if(!u) return; const data=(await getFile('moderation/banlist.json'))?.json||{users:[]}; if(!data.users.includes(u)) data.users.push(u); await putJson('moderation/banlist.json', data, `ban ${u}`); $('banUser').value=''; renderModeration() };
+$('allowAdd').onclick = async ()=>{ const h=active().handle; if(!h || !(await isAdmin(h))) return alert('Admins only'); const u=$('allowUser').value.trim().replace(/^@/,''); if(!u) return; const data=(await getFile('moderation/allowlist.json'))?.json||{admins:[GH.owner]}; if(!data.admins.includes(u)) data.admins.push(u); await putJson('moderation/allowlist.json', data, `add admin ${u}`); $('allowUser').value=''; renderModeration() };
+
+/* ---------- People + DMs ---------- */
 async function loadPeople(){
   const list=$('peopleList'); if(!list) return; list.innerHTML=`<div class='text-xs text-black/60'>Loading…</div>`;
-  const q=($('peopleSearch')?.value||'').toLowerCase().trim(); const me=get(S.cfg,{}).gh_login||'';
+  const q=($('peopleSearch')?.value||'').toLowerCase().trim(); const me=active().handle||'';
   const idx=await profilesIndex(); const filtered=idx.filter(p=> p.login!==me && (!q || (p.display_name?.toLowerCase().includes(q)||p.login.toLowerCase().includes(q))));
   if(!filtered.length){ list.innerHTML=`<div class='text-xs text-black/60'>No people yet.</div>`; return }
   list.innerHTML=''; filtered.forEach(p=>{
@@ -468,14 +512,14 @@ $('peopleSearch')?.addEventListener('input', loadPeople); loadPeople();
 
 function threadId(a,b){ return [a,b].sort().join('__') }
 async function loadThread(peer){
-  const me=get(S.cfg,{}).gh_login; if(!me){ $('dmTitle').textContent='Sign in to chat'; $('chatLog').innerHTML=''; return }
+  const me=active().handle; if(!me){ $('dmTitle').textContent='Sign in to chat'; $('chatLog').innerHTML=''; return }
   $('dmTitle').textContent = `Chat with @${peer}`;
-  const id=threadId(me,peer); const t=await fetchJson(pagesURL(`dms/${id}.json`)) || { id, messages:[] };
-  renderThread(t);
+  const id=threadId(me,peer); const t=await fetchJson(pagesURL(`dms/${id}.json`)) || { id, participants:[me,peer], messages:[] };
+  renderThread(t, peer);
 }
-function renderThread(t){
+function renderThread(t, peer){
   const host=$('chatLog'); if(!host) return; host.innerHTML='';
-  const me=get(S.cfg,{}).gh_login||'';
+  const me=active().handle||'';
   (t.messages||[]).forEach(m=>{
     const mine=m.author===me;
     const div=document.createElement('div'); div.className=`mb-2 ${mine?'text-right':''}`;
@@ -484,31 +528,28 @@ function renderThread(t){
     host.appendChild(div);
   });
   host.querySelectorAll('[data-delmsg]').forEach(b=> b.addEventListener('click', async ()=>{
-    const me=await ghMe(); if(!me) return;
+    const me=active().handle; if(!me) return;
     const mid=b.getAttribute('data-delmsg'); const id=b.getAttribute('data-dmid');
-    const path=`dms/${id}.json`; const cur=await getFile(path); const t=cur?.json||{id, messages:[]};
-    t.messages = (t.messages||[]).filter(x=> x.id!==mid || x.author!==me.login);
-    await putJson(path, t, `dm-delete: ${me.login}`);
-    loadThread(t.participants?.find(u=>u!==me.login)||'');
+    const path=`dms/${id}.json`; const cur=await getFile(path); const tt=cur?.json||{id, participants:[me,peer], messages:[]};
+    tt.messages = (tt.messages||[]).filter(x=> !(x.id===mid && x.author===me));
+    await putJson(path, tt, `dm-delete: ${me}`);
+    renderThread(tt, peer); // avoid recursive reload
   }));
   host.scrollTop=host.scrollHeight;
 }
 $('chatSend').onclick = async ()=>{
-  const peer=($('dmTitle').textContent||'').replace(/^Chat with @/,'').trim();
-  const text=($('chatMsg').value||'').trim(); if(!peer||!text) return;
-  try{
-    const me=await ghMe(); if(!me) return alert('Sign in first');
-    if(await isBanned(me.login)) return alert('You are banned from posting.');
-    const id=threadId(me.login,peer); const path=`dms/${id}.json`;
-    const cur=await getFile(path); const t=cur?.json||{ id, participants:[me.login,peer], messages:[] };
-    t.messages.push({ id:`${Date.now()}_${rand()}`, author:me.login, text, ts:Date.now() });
-    await putJson(path, t, `dm: ${me.login} → ${peer}`);
-    $('chatMsg').value=''; renderThread(t);
-  }catch(e){ alert(e.message||String(e)) }
+  const peer=($('dmTitle').textContent||'').replace(/^Chat with @/,'').trim(); const text=($('chatMsg').value||'').trim(); if(!peer||!text) return;
+  const me=active().handle; if(!me) return alert('Sign in first');
+  if(await isBanned(me)) return alert('You are banned from posting.');
+  const id=threadId(me,peer); const path=`dms/${id}.json`;
+  const cur=await getFile(path); const t=cur?.json||{ id, participants:[me,peer], messages:[] };
+  t.messages.push({ id:`${Date.now()}_${rand()}`, author:me, text, ts:Date.now() });
+  await putJson(path, t, `dm: ${me} → ${peer}`);
+  $('chatMsg').value=''; renderThread(t, peer);
 };
 async function openDM(peer){ await loadThread(peer) } window.openDM=openDM;
 
-/* ----------------- Groups ----------------- */
+/* ---------- Groups ---------- */
 async function groupsIndex(){ return await fetchJson(pagesURL('indexes/groups.json')) || [] }
 async function loadGroups(){
   const list=$('groupList'); list.innerHTML='<div class="text-xs text-black/60">Loading…</div>';
@@ -521,24 +562,22 @@ async function loadGroups(){
 }
 $('createGroup').onclick = async ()=>{
   const name = ($('newGroupName').value||'').trim(); if(!name) return;
-  const me=await ghMe(); if(!me) return alert('Sign in first');
+  const me=active().handle; if(!me) return alert('Sign in first');
   const id = name.toLowerCase().replace(/[^a-z0-9]+/g,'-') + '-' + rand();
-  const g = { id, name, owner: me.login, created_at: nowISO(), members:[me.login], messages:[] };
+  const g = { id, name, owner: me, created_at: nowISO(), members:[me], messages:[] };
   await putJson(`groups/${id}.json`, g, `group create: ${id}`);
   const idx=await groupsIndex(); await putJson('indexes/groups.json', [g, ...idx], `index(groups): add ${id}`);
   $('newGroupName').value=''; loadGroups(); openGroup(id);
 };
 async function openGroup(id){
   const file=await getFile(`groups/${id}.json`); const g=file?.json; if(!g) return;
-  $('groupTitle').textContent = g.name;
-  $('groupLog').dataset.gid = id;
-  renderGroup(g);
+  $('groupTitle').textContent = g.name; $('groupLog').dataset.gid = id; renderGroup(g);
 }
 function renderGroup(g){
-  const me=get(S.cfg,{}).gh_login||''; const host=$('groupLog'); host.innerHTML='';
-  const isMember = g.members?.includes(me);
+  const me=active().handle||''; const host=$('groupLog'); host.innerHTML='';
+  const isMember = (g.members||[]).includes(me);
   $('joinGroup').classList.toggle('hidden', isMember); $('leaveGroup').classList.toggle('hidden', !isMember);
-  g.messages.forEach(m=>{
+  (g.messages||[]).forEach(m=>{
     const mine=m.author===me;
     const del = mine ? `<button class="ml-2 text-[11px] underline" data-gdel="${m.id}" data-gid="${g.id}">Delete</button>` : '';
     const div=document.createElement('div'); div.className=`mb-2 ${mine?'text-right':''}`;
@@ -546,79 +585,46 @@ function renderGroup(g){
     host.appendChild(div);
   });
   host.querySelectorAll('[data-gdel]').forEach(b=> b.addEventListener('click', async ()=>{
-    const me=await ghMe(); if(!me) return;
+    const me=active().handle; if(!me) return;
     const mid=b.getAttribute('data-gdel'); const gid=b.getAttribute('data-gid');
-    const cur=await getFile(`groups/${gid}.json`); const g=cur?.json; if(!g) return;
-    g.messages = (g.messages||[]).filter(x=> x.id!==mid || x.author!==me.login);
-    await putJson(`groups/${gid}.json`, g, `group msg delete: ${me.login}`);
-    renderGroup(g);
+    const cur=await getFile(`groups/${gid}.json`); const gg=cur?.json; if(!gg) return;
+    gg.messages = (gg.messages||[]).filter(x=> !(x.id===mid && x.author===me));
+    await putJson(`groups/${gid}.json`, gg, `group msg delete: ${me}`);
+    renderGroup(gg);
   }));
   host.scrollTop=host.scrollHeight;
 }
 $('joinGroup').onclick = async ()=>{
-  const me=await ghMe(); if(!me) return alert('Sign in first');
+  const me=active().handle; if(!me) return alert('Sign in first');
   const gid=$('groupLog').dataset.gid; if(!gid) return;
   const cur=await getFile(`groups/${gid}.json`); const g=cur?.json; if(!g) return;
-  if(!g.members.includes(me.login)) g.members.push(me.login);
-  await putJson(`groups/${gid}.json`, g, `group join: ${me.login}`);
-  renderGroup(g);
+  if(!g.members.includes(me)) g.members.push(me); await putJson(`groups/${gid}.json`, g, `group join: ${me}`); renderGroup(g);
 };
 $('leaveGroup').onclick = async ()=>{
-  const me=await ghMe(); if(!me) return alert('Sign in first');
+  const me=active().handle; if(!me) return alert('Sign in first');
   const gid=$('groupLog').dataset.gid; if(!gid) return;
   const cur=await getFile(`groups/${gid}.json`); const g=cur?.json; if(!g) return;
-  g.members = (g.members||[]).filter(u=>u!==me.login);
-  await putJson(`groups/${gid}.json`, g, `group leave: ${me.login}`);
-  renderGroup(g);
+  g.members = (g.members||[]).filter(u=>u!==me); await putJson(`groups/${gid}.json`, g, `group leave: ${me}`); renderGroup(g);
 };
 $('groupSend').onclick = async ()=>{
   const text=($('groupMsg').value||'').trim(); if(!text) return;
-  const me=await ghMe(); if(!me) return alert('Sign in first');
-  if(await isBanned(me.login)) return alert('You are banned from posting.');
+  const me=active().handle; if(!me) return alert('Sign in first');
+  if(await isBanned(me)) return alert('You are banned from posting.');
   const gid=$('groupLog').dataset.gid; if(!gid) return alert('Open a group');
   const cur=await getFile(`groups/${gid}.json`); const g=cur?.json; if(!g) return;
-  if(!(g.members||[]).includes(me.login)) return alert('Join the group first.');
-  g.messages.push({ id:`${Date.now()}_${rand()}`, author:me.login, text, ts:Date.now() });
-  await putJson(`groups/${gid}.json`, g, `group msg: ${me.login}`);
-  $('groupMsg').value=''; renderGroup(g);
+  if(!(g.members||[]).includes(me)) return alert('Join the group first.');
+  g.messages.push({ id:`${Date.now()}_${rand()}`, author:me, text, ts:Date.now() });
+  await putJson(`groups/${gid}.json`, g, `group msg: ${me}`); $('groupMsg').value=''; renderGroup(g);
 };
 loadGroups();
 
-/* ----------------- Moderation ----------------- */
-async function moderationGet(){
-  const allow = (await getFile('moderation/allowlist.json'))?.json || { admins:[GH.owner] };
-  const ban = (await getFile('moderation/banlist.json'))?.json || { users:[] };
-  const flagged = (await getFile('moderation/flagged.json'))?.json || [];
-  return { allow, ban, flagged };
-}
-async function isAdmin(login){
-  const {allow}=await moderationGet(); return isOwner(login) || (allow.admins||[]).includes(login);
-}
-async function isBanned(login){
-  const {ban}=await moderationGet(); return (ban.users||[]).includes(login);
-}
-async function checkAdmin(){
-  const me=get(S.cfg,{}).gh_login; if(!me) return;
-  const adm=await isAdmin(me); $('adminPanel').classList.toggle('hidden', !adm);
-  if(adm){ renderModeration() }
-}
-async function renderModeration(){
-  const {allow,ban,flagged}=await moderationGet();
-  const bl=$('banList'); bl.innerHTML=(ban.users||[]).map(u=> `<div class="text-sm flex items-center justify-between"><span>@${u}</span><button data-unban="${u}" class="text-xs underline">remove</button></div>`).join('')||'<div class="text-xs text-black/60">—</div>';
-  const al=$('allowList'); al.innerHTML=(allow.admins||[]).map(u=> `<div class="text-sm flex items-center justify-between"><span>@${u}</span><button data-unallow="${u}" class="text-xs underline">remove</button></div>`).join('')||'<div class="text-xs text-black/60">—</div>';
-  const fl=$('flagList'); fl.innerHTML=(flagged||[]).slice(-100).reverse().map(f=> `<div class="text-xs border rounded px-2 py-1">${f.type} • ${f.id} • by @${f.by} • ${new Date(f.ts).toLocaleString()}</div>`).join('')||'<div class="text-xs text-black/60">—</div>';
-  bl.querySelectorAll('[data-unban]').forEach(b=> b.onclick = async ()=>{ const login=b.dataset.unban; const data=(await getFile('moderation/banlist.json'))?.json||{users:[]}; data.users=data.users.filter(u=>u!==login); await putJson('moderation/banlist.json', data, `unban ${login}`); renderModeration() });
-  al.querySelectorAll('[data-unallow]').forEach(b=> b.onclick = async ()=>{ const login=b.dataset.unallow; const data=(await getFile('moderation/allowlist.json'))?.json||{admins:[GH.owner]}; data.admins=data.admins.filter(u=>u!==login); await putJson('moderation/allowlist.json', data, `remove admin ${login}`); renderModeration() });
-}
-$('banAdd').onclick = async ()=>{ const me=await ghMe(); if(!me || !(await isAdmin(me.login))) return alert('Admins only'); const u=$('banUser').value.trim().replace(/^@/,''); if(!u) return; const data=(await getFile('moderation/banlist.json'))?.json||{users:[]}; if(!data.users.includes(u)) data.users.push(u); await putJson('moderation/banlist.json', data, `ban ${u}`); $('banUser').value=''; renderModeration() };
-$('allowAdd').onclick = async ()=>{ const me=await ghMe(); if(!me || !(await isAdmin(me.login))) return alert('Admins only'); const u=$('allowUser').value.trim().replace(/^@/,''); if(!u) return; const data=(await getFile('moderation/allowlist.json'))?.json||{admins:[GH.owner]}; if(!data.admins.includes(u)) data.admins.push(u); await putJson('moderation/allowlist.json', data, `add admin ${u}`); $('allowUser').value=''; renderModeration() };
-
-/* ----------------- Hashtags (explore) ----------------- */
-function tagBtn(t,cnt){ const b=document.createElement('button'); b.className='btn'; b.textContent = `#${t} (${cnt||0})`; b.onclick=()=> showTag(t); return b; }
+/* ---------- Hashtags Explore ---------- */
+async function hashtagsIndex(){ return await fetchJson(pagesURL('indexes/hashtags.json')) || {} }
+function tagBtn(t,cnt){ const b=document.createElement('button'); b.className='btn'; b.textContent=`#${t} (${cnt||0})`; b.onclick=()=> showTag(t); return b; }
 async function renderTagsCloud(){
   const cloud=$('tagCloud'); cloud.innerHTML='';
   const tags=await hashtagsIndex(); const arr=Object.entries(tags).map(([k,v])=>({tag:k, count:v.count||0, last:v.last||0}));
-  arr.sort((a,b)=> (b.count - a.count) || (b.last - a.last));
+  arr.sort((a,b)=> (b.count-a.count)||(b.last-a.last));
   if(!arr.length){ cloud.innerHTML='<div class="text-xs text-black/60">No tags yet.</div>'; return }
   arr.slice(0,60).forEach(t=> cloud.appendChild(tagBtn(t.tag, t.count)));
 }
@@ -627,39 +633,42 @@ $('tagSearch').addEventListener('input', async (e)=>{
   const tags=await hashtagsIndex(); Object.keys(tags).filter(k=> k.toLowerCase().includes(q)).slice(0,80).forEach(k=> cloud.appendChild(tagBtn(k, tags[k].count||0)));
 });
 async function showTag(tag){
-  $('tagTitle').textContent = `#${tag}`;
+  $('tagTitle').textContent=`#${tag}`;
   const feed=$('tagFeed'); feed.innerHTML='';
   const idx = await fetchJson(pagesURL('indexes/moments.json')) || [];
   const filtered = idx.filter(m=> (m.tags||[]).map(t=>t.toLowerCase()).includes(tag.toLowerCase()));
-  if(!filtered.length){ feed.innerHTML='<div class="text-xs text-black/60">No posts for this tag yet.</div>'; return }
+  if(!filtered.length){ feed.innerHTML='<div class="text-xs text-black/60">No posts yet.</div>'; return }
   const map=await pmap();
   filtered.forEach(m=> feed.appendChild(homeCard(m, map[m.author])));
 }
 renderTagsCloud();
 
-/* ----------------- Search across feeds ----------------- */
+/* ---------- Search filter ---------- */
 $('search').addEventListener('input', (e)=>{
   const q=e.target.value.toLowerCase().trim();
   [...($('homeFeed')?.children||[])].forEach(c=> c.style.display = c.textContent.toLowerCase().includes(q)? '' : 'none');
   [...($('momFeed')?.children||[])].forEach(c=> c.style.display = (c.dataset.searchable||'').includes(q)? '' : 'none');
 });
 
-/* ----------------- Moments (feed + actions) ----------------- */
+/* ---------- Profiles map ---------- */
 async function pmap(){ const arr=await profilesIndex(); const m={}; arr.forEach(p=> m[p.login]=p); return m; }
-function isMine(author){ return (get(S.cfg,{}).gh_login||'')===author }
+function isMine(author){ return active().handle===author }
 
+/* ---------- Moments (cards + actions) ---------- */
 function momentCard(m, prof){
   const name=prof?.display_name||m.author||'user', avatar=prof?.avatar_url||'';
   const wrap=document.createElement('div'); wrap.className='mom-item rounded-2xl border border-black/10 bg-black/90 text-white overflow-hidden relative';
   wrap.dataset.searchable=`${m.caption||''} ${(m.tags||[]).join(' ')}`.toLowerCase();
-  const mediaHTML = (m.media && m.media.length>1) ? `<div class='absolute left-2 top-2 text-xs bg-white/20 rounded px-2 py-0.5'>${m.media.length} photos</div>` : '';
-  const reportBtn = `<button class='btn reportBtn' data-id='${m.id}'>🚩</button>`;
+  const isVideo = m.kind==='video';
+  const first = m.media?.[0];
+  const mediaEl = isVideo
+    ? `<video class='mom-video absolute inset-0 h-full w-full object-cover' src='${first.url}' playsinline muted loop></video>`
+    : first && first.kind==='image'
+      ? `<img class='absolute inset-0 h-full w-full object-cover' src='${first.url}' alt=''>`
+      : `<div class='absolute inset-0 grid place-items-center text-white/70'>File post</div>`;
   wrap.innerHTML = `
     <div class='aspect-[9/16] w-full relative'>
-      ${m.kind==='video'
-        ? `<video class='mom-video absolute inset-0 h-full w-full object-cover' src='${m.media?.[0]?.url||m.media_url||m.src}' playsinline muted loop></video>`
-        : `<img class='absolute inset-0 h-full w-full object-cover' src='${m.media?.[0]?.url||m.media_url||m.src}' alt=''>`}
-      ${mediaHTML}
+      ${mediaEl}
       <div class='absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 to-black/0'>
         <div class='flex items-center gap-2'>${avatar? `<img src='${avatar}' class='h-5 w-5 rounded-full'>`:''}<div class='text-sm font-semibold'>${name}</div></div>
         <div class='text-sm opacity-90'>${m.caption||''}</div>
@@ -669,11 +678,12 @@ function momentCard(m, prof){
         <button class='btn likeBtn' data-id='${m.id}'>❤ ${m.likes||0}</button>
         <button class='btn cmtBtn' data-id='${m.id}'>💬 ${m.comments?.length||0}</button>
         ${m.link? `<a class='btn' target='_blank' href='${m.link}'>🔗</a>`:''}
+        <a ${!isVideo&&first?.kind!=='image' ? '' : "class='hidden'"} class='btn' target='_blank' href='${first?.url||'#'}'>⬇</a>
         <button class='btn delBtn ${isMine(m.author)?'':'hidden'}' data-id='${m.id}'>🗑</button>
-        ${reportBtn}
+        <button class='btn reportBtn' data-id='${m.id}'>🚩</button>
       </div>
     </div>
-    ${m.media && m.media.length>1 ? `<div class='bg-white text-slate-900 p-2 flex gap-2 overflow-x-auto'>${m.media.map(mm=> mm.kind==='image'? `<img src='${mm.url}' class='h-16 w-16 rounded object-cover'>`:`<span class='text-xs bg-black/5 rounded px-2 py-1'>video</span>`).join('')}</div>`:''}
+    ${m.media && m.media.length>1 ? `<div class='bg-white text-slate-900 p-2 flex gap-2 overflow-x-auto'>${m.media.map(mm=> mm.kind==='image'? `<img src='${mm.url}' class='h-16 w-16 rounded object-cover'>`:`<span class='text-xs bg-black/5 rounded px-2 py-1'>file</span>`).join('')}</div>`:''}
     <div class='p-3 bg-white text-slate-900'>
       <div class='flex items-center gap-2'>
         <input class='cmtInput grow rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm' placeholder='Add a comment…'>
@@ -692,11 +702,11 @@ async function renderMoments(){
   const map=await pmap();
   idx.forEach(m=> host.appendChild(momentCard(m, map[m.author])));
   wireMomentActions(host);
-  const vids=[...host.querySelectorAll('.mom-video')]; attachObserver(vids);
+  attachObserver([...host.querySelectorAll('.mom-video')]);
 }
 function wireMomentActions(scope){
   scope.querySelectorAll('.likeBtn').forEach(b=> b.onclick = async ()=>{
-    const id=b.dataset.id; const me=await ghMe(); if(!me) return alert('Sign in first');
+    const id=b.dataset.id; const me=active().handle; if(!me) return alert('Sign in first');
     const mf=await getFile(`moments/${id}.json`); if(!mf?.json) return;
     const m=mf.json; m.likes=(m.likes||0)+1; await putJson(`moments/${id}.json`, m, `like: ${id}`);
     const cur=await getFile('indexes/moments.json'); let arr=Array.isArray(cur?.json)? cur.json:[]; arr=arr.map(x=> x.id===id? {...x, likes:m.likes }: x);
@@ -704,49 +714,46 @@ function wireMomentActions(scope){
   });
   scope.querySelectorAll('.delBtn').forEach(b=> b.onclick = ()=> confirmDeleteMoment(b.dataset.id));
   scope.querySelectorAll('.cmtSend').forEach(btn=> btn.onclick = async ()=>{
-    const id=btn.dataset.id; const me=await ghMe(); if(!me) return alert('Sign in first');
+    const id=btn.dataset.id; const me=active().handle; if(!me) return alert('Sign in first');
     const wrap=btn.closest('.p-3'); const input=wrap.querySelector('.cmtInput'); const text=(input.value||'').trim(); if(!text) return;
     const mf=await getFile(`moments/${id}.json`); const m=mf?.json; if(!m) return;
-    m.comments = m.comments||[]; m.comments.push({ id:`${Date.now()}_${rand()}`, author: me.login, text, ts: Date.now() });
+    m.comments = m.comments||[]; m.comments.push({ id:`${Date.now()}_${rand()}`, author: me, text, ts: Date.now() });
     await putJson(`moments/${id}.json`, m, `comment: ${id}`);
     const cur=await getFile('indexes/moments.json'); let arr=Array.isArray(cur?.json)? cur.json:[]; arr=arr.map(x=> x.id===id? {...x, comments:m.comments.slice(-2) }: x);
     await putJson('indexes/moments.json', arr, `index(moments): comment ${id}`);
-    input.value=''; const list=$(`cmt-${id}`); const p=document.createElement('div'); p.innerHTML = `<b>${me.login}</b>: ${text}`; list.appendChild(p); list.scrollTop=list.scrollHeight;
+    input.value=''; const list=$(`cmt-${id}`); const p=document.createElement('div'); p.innerHTML = `<b>${me}</b>: ${text}`; list.appendChild(p); list.scrollTop=list.scrollHeight;
   });
   scope.querySelectorAll('.reportBtn').forEach(b=> b.onclick = async ()=>{
-    const me=await ghMe(); if(!me) return alert('Sign in first');
+    const me=active().handle; if(!me) return alert('Sign in first');
     const id=b.dataset.id; const flagged=(await getFile('moderation/flagged.json'))?.json||[];
-    flagged.push({ type:'moment', id, by:me.login, ts:Date.now() });
-    await putJson('moderation/flagged.json', flagged, `report moment ${id}`);
-    alert('Reported. Thanks.');
+    flagged.push({ type:'moment', id, by:me, ts:Date.now() });
+    await putJson('moderation/flagged.json', flagged, `report moment ${id}`); alert('Reported. Thanks.');
   });
 }
 async function confirmDeleteMoment(id){
-  const me=get(S.cfg,{}).gh_login; if(!me) return alert('Sign in first');
+  const me=active().handle; if(!me) return alert('Sign in first');
   const mf=await getFile(`moments/${id}.json`); const m=mf?.json; if(!m) return;
   if(m.author!==me) return alert('Only author can delete.');
   if(!confirm('Delete this post (and try to remove media)?')) return;
-  // delete JSON
   await delPath(`moments/${id}.json`, mf.sha, `delete moment ${id}`);
-  // remove from index
   const cur=await getFile('indexes/moments.json'); let arr=Array.isArray(cur?.json)? cur.json:[]; arr=arr.filter(x=> x.id!==id); await putJson('indexes/moments.json', arr, `index(moments): remove ${id}`);
-  // try delete media files
-  for(const mm of (m.media||[])){
-    const path=urlToRepoPath(mm.url); if(!path) continue;
-    const f=await getFile(path); if(f?.sha){ try{ await delPath(path, f.sha, `delete media ${id}`) }catch{} }
-  }
+  for(const mm of (m.media||[])){ const path=urlToRepoPath(mm.url); if(!path) continue; const f=await getFile(path); if(f?.sha){ try{ await delPath(path, f.sha, `delete media ${id}`) }catch{} } }
   renderMoments(); renderHome();
 }
 
-/* ----------------- Home feed (grid + autoplay) ----------------- */
+/* ---------- Home feed ---------- */
 function homeCard(m, prof){
   const name=prof?.display_name||m.author||'user', avatar=prof?.avatar_url||'';
   const el=document.createElement('div'); el.className='group overflow-hidden rounded-2xl border bg-white shadow card';
+  const first=m.media?.[0];
+  const media = m.kind==='video'
+    ? `<video class='feed-video h-56 w-full object-cover' src='${first.url}' muted playsinline loop></video>`
+    : first && first.kind==='image'
+      ? `<img class='h-56 w-full object-cover' src='${first.url}' alt=''>`
+      : `<div class='h-56 grid place-items-center text-black/60 text-sm'>File post • <a class="underline" target="_blank" href="${first?.url||'#'}">Download</a></div>`;
   el.innerHTML=`
     <div class="relative">
-      ${m.kind==='video'
-        ? `<video class='feed-video h-56 w-full object-cover' src='${m.media?.[0]?.url||m.media_url||m.src}' muted playsinline loop></video>`
-        : `<img class='h-56 w-full object-cover' src='${m.media?.[0]?.url||m.media_url||m.src}' alt=''>`}
+      ${media}
       <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 text-white">
         <div class="flex items-center gap-2 text-sm">
           ${avatar? `<img src='${avatar}' class='h-5 w-5 rounded-full border border-white/20'>`:''}
@@ -763,40 +770,49 @@ async function renderHome(){
   const map=await pmap();
   if(!idx.length){ host.innerHTML=`<div class='text-xs text-black/60'>No posts yet.</div>`; return }
   idx.forEach(m=> host.appendChild(homeCard(m, map[m.author])));
-  const vids=[...host.querySelectorAll('.feed-video')]; attachObserver(vids);
+  attachObserver([...host.querySelectorAll('.feed-video')]);
 }
+
+/* ---------- IntersectionObserver (single instance) ---------- */
+let videoObserver=null;
 function attachObserver(videos){
   if(!('IntersectionObserver' in window)) { videos.forEach(v=> v.play?.()); return }
-  const obs=new IntersectionObserver((entries)=> entries.forEach(en=>{
-    const v=en.target; if(en.isIntersecting && en.intersectionRatio>0.6){ v.play().catch(()=>{}) } else { v.pause?.() }
-  }), {threshold:[0,0.6,1]});
-  videos.forEach(v=> obs.observe(v));
+  if(videoObserver){ videos.forEach(v=> videoObserver.observe(v)); return }
+  videoObserver=new IntersectionObserver((entries)=>{
+    entries.forEach(en=>{
+      const v=en.target;
+      if(en.isIntersecting && en.intersectionRatio>0.6){ v.play?.().catch(()=>{}) } else { v.pause?.() }
+    })
+  }, {threshold:[0,0.6,1]});
+  videos.forEach(v=> videoObserver.observe(v));
 }
 
-/* ----------------- Composer (multi-image, studio, posting) ----------------- */
-let momSelected = []; // [{file, name, edited?:true}]
-function resetComposer(){
-  momSelected=[]; $('momThumbs').innerHTML=''; $('momFiles').value=''; $('momCaption').value=''; $('momTags').value=''; $('momLink').value='';
-}
+/* ---------- Composer (any files; images/videos get preview) ---------- */
+let momSelected=[]; // [{file, name, kind:'image'|'video'|'file', edited?}]
+function resetComposer(){ momSelected=[]; $('momThumbs').innerHTML=''; $('momFiles').value=''; $('momCaption').value=''; $('momTags').value=''; $('momLink').value=''; }
 $('clearSel').onclick = resetComposer;
-
 $('momFiles').addEventListener('change', (e)=>{
   const files=[...(e.target.files||[])];
   const hasVideo=files.some(f=> f.type.startsWith('video'));
-  let chosen=[];
-  if(hasVideo){ chosen=[files.find(f=> f.type.startsWith('video'))]; }
-  else{ chosen=files.filter(f=> f.type.startsWith('image')).slice(0,4); }
-  momSelected = chosen.map(f=> ({ file:f, name:f.name }));
+  const imgs=files.filter(f=> f.type.startsWith('image')).slice(0,4);
+  const others=files.filter(f=> !f.type.startsWith('image') && !f.type.startsWith('video'));
+  momSelected = hasVideo ? [{ file:files.find(f=>f.type.startsWith('video')), name:files.find(f=>f.type.startsWith('video')).name, kind:'video' }] :
+               imgs.length   ? imgs.map(f=> ({ file:f, name:f.name, kind:'image' })) :
+                               others.map(f=> ({ file:f, name:f.name, kind:'file' })).slice(0,4);
   drawThumbs();
 });
 function drawThumbs(){
   const host=$('momThumbs'); host.innerHTML='';
   momSelected.forEach((o,idx)=>{
-    const url=URL.createObjectURL(o.file);
+    const url = o.kind==='image' ? URL.createObjectURL(o.file) : '';
+    const label = o.kind==='video' ? '🎬 video' : o.kind==='file' ? '📎 file' : '';
     const btn=document.createElement('button');
     btn.className='relative rounded overflow-hidden border border-black/10';
-    btn.title='Click to edit in Studio Pro'; btn.innerHTML=`<img src='${url}' class='thumb w-full rounded'>${o.edited? "<span class='absolute bottom-1 right-1 text-[10px] bg-white/80 rounded px-1'>edited</span>":""}`;
-    btn.onclick=()=> openStudioWithFile(idx); host.appendChild(btn);
+    btn.title = o.kind==='image' ? 'Click to edit in Studio Pro' : '';
+    btn.innerHTML = o.kind==='image' ? `<img src='${url}' class='thumb w-full rounded'>${o.edited? "<span class='absolute bottom-1 right-1 text-[10px] bg-white/80 rounded px-1'>edited</span>":""}`
+                                     : `<div class='w-full h-20 grid place-items-center text-xs'>${label}<br>${o.name}</div>`;
+    if(o.kind==='image') btn.onclick=()=> openStudioWithFile(idx);
+    host.appendChild(btn);
   });
 }
 $('saveDraft').onclick = ()=>{ if(!momSelected.length) return alert('Select media first');
@@ -805,24 +821,17 @@ $('saveDraft').onclick = ()=>{ if(!momSelected.length) return alert('Select medi
 };
 $('momPost').onclick = async ()=>{
   if(!momSelected.length) return alert('Upload media first');
-  const me=await ghMe(); if(!me) return alert('Sign in first');
-  if(await isBanned(me.login)) return alert('You are banned from posting.');
+  const me=active().handle; if(!me) return alert('Sign in first');
+  if(await isBanned(me)) return alert('You are banned from posting.');
   try{
     const ymd=new Date().toISOString().slice(0,10);
-    const isVideo=momSelected.length===1 && momSelected[0].file.type.startsWith('video');
     let media=[];
-    if(isVideo){
-      const f=momSelected[0].file;
-      const url=await putFile(`media/moments/video/${ymd}/${Date.now()}_${rand()}_${safeName(f.name)}`, f, `moment video: ${me.login}`);
-      media=[{ kind:'video', url }];
-    }else{
-      for(const o of momSelected){
-        const url=await putFile(`media/moments/image/${ymd}/${Date.now()}_${rand()}_${safeName(o.file.name)}`, o.file, `moment image: ${me.login}`);
-        media.push({ kind:'image', url });
-      }
+    for(const o of momSelected){
+      const url=await putFile(`media/moments/${o.kind}/${ymd}/${Date.now()}_${rand()}_${safeName(o.name)}`, o.file, `moment ${o.kind}: ${me}`);
+      media.push({ kind:o.kind, url });
     }
     const meta = {
-      id:`${Date.now()}_${rand()}`, author: me.login, kind: isVideo? 'video' : 'image',
+      id:`${Date.now()}_${rand()}`, author: me, kind: media[0].kind==='video'?'video':media[0].kind==='image'?'image':'file',
       media, src: media[0].url, media_url: media[0].url,
       caption:$('momCaption').value.trim(),
       tags:$('momTags').value.split(',').map(s=>s.trim().replace(/^#/,'')).filter(Boolean),
@@ -837,22 +846,21 @@ $('momPost').onclick = async ()=>{
 };
 function safeName(n){ return (n||'file').replace(/[^a-zA-Z0-9._-]/g,'_') }
 
-/* ----------------- Stories (multi-upload up to 4) ----------------- */
+/* ---------- Stories (up to 4; 48h) ---------- */
 $('storyFiles').addEventListener('change', async (e)=>{
   const files=[...(e.target.files||[])].slice(0,4); if(!files.length) return;
-  const me=await ghMe(); if(!me) { alert('Sign in first'); e.target.value=''; return }
-  if(await isBanned(me.login)) return alert('You are banned from posting.');
+  const me=active().handle; if(!me) { alert('Sign in first'); e.target.value=''; return }
+  if(await isBanned(me)) return alert('You are banned from posting.');
   try{
     const ymd=new Date().toISOString().slice(0,10);
     const added=[];
     for(const f of files){
-      const folder = f.type.startsWith('video')? `media/stories/video/${ymd}` : `media/stories/image/${ymd}`;
-      const url = await putFile(`${folder}/${Date.now()}_${rand()}_${safeName(f.name)}`, f, `story media: ${me.login}`);
+      const kind = f.type.startsWith('video') ? 'video' : f.type.startsWith('image') ? 'image' : 'file';
+      const folder = `media/stories/${kind}/${ymd}`;
+      const url = await putFile(`${folder}/${Date.now()}_${rand()}_${safeName(f.name)}`, f, `story ${kind}: ${me}`);
       const meta = {
-        id:`${Date.now()}_${rand()}`, author: me.login,
-        kind: f.type.startsWith('video')? 'video' : 'image',
-        src:url, thumb:url, caption:'New story', created_at: nowISO(),
-        expires_at: new Date(Date.now()+48*60*60*1000).toISOString()
+        id:`${Date.now()}_${rand()}`, author: me, kind, src:url, thumb:url, caption:'New story',
+        created_at: nowISO(), expires_at: new Date(Date.now()+48*60*60*1000).toISOString()
       };
       await putJson(`stories/${meta.id}.json`, meta, `story: ${meta.id}`); added.push(meta);
     }
@@ -863,7 +871,7 @@ $('storyFiles').addEventListener('change', async (e)=>{
   e.target.value='';
 });
 $('myStories').onclick = async ()=>{
-  const me=get(S.cfg,{}).gh_login; if(!me) return alert('Sign in first');
+  const me=active().handle; if(!me) return alert('Sign in first');
   const modal=$('modal'); modal.classList.remove('hidden');
   const all=await fetchJson(pagesURL('indexes/stories.json'))||[]; const mine=all.filter(s=> s.author===me);
   modal.innerHTML=`
@@ -875,13 +883,13 @@ $('myStories').onclick = async ()=>{
   const host=$('myStWrap');
   mine.forEach(s=>{
     const row=document.createElement('div'); row.className='flex items-center justify-between border rounded px-2 py-1';
-    row.innerHTML=`<div class='flex items-center gap-2'>${s.kind==='image'? `<img src='${s.thumb||s.src}' class='h-10 w-10 rounded object-cover'>`:`<span class='text-xs'>🎬 video</span>`}<div class='text-sm'>${s.caption||''}</div></div><button class='btn' data-delst='${s.id}'>Delete</button>`;
+    row.innerHTML=`<div class='flex items-center gap-2'>${s.kind==='image'? `<img src='${s.thumb||s.src}' class='h-10 w-10 rounded object-cover'>`:(s.kind==='video'? '<span class="text-xs">🎬 video</span>':'<span class="text-xs">📎 file</span>')}<div class='text-sm'>${s.caption||''}</div></div><button class='btn' data-delst='${s.id}'>Delete</button>`;
     host.appendChild(row);
   });
   host.querySelectorAll('[data-delst]').forEach(b=> b.onclick = ()=> deleteStory(b.dataset.delst));
 };
 async function deleteStory(id){
-  const me=get(S.cfg,{}).gh_login; if(!me) return;
+  const me=active().handle; if(!me) return;
   const sf=await getFile(`stories/${id}.json`); const s=sf?.json; if(!s || s.author!==me) return;
   if(!confirm('Delete this story (and try to remove media)?')) return;
   await delPath(`stories/${id}.json`, sf.sha, `delete story ${id}`);
@@ -890,20 +898,22 @@ async function deleteStory(id){
   $('modal').classList.add('hidden'); renderStories();
 }
 
-/* ----------------- Stories render/viewer ----------------- */
-function storyChip(s, prof){
-  const name=prof?.display_name||s.author||'Story';
-  const el=document.createElement('button'); el.className='flex flex-col items-center gap-1';
-  el.innerHTML=`<span class='block h-16 w-16 rounded-full border-2 border-fuchsia-400 overflow-hidden'>
-      ${s.kind==='image'? `<img src='${s.thumb||s.src}' class='h-full w-full object-cover'>`:`<video src='${s.src}' class='h-full w-full object-cover' muted></video>`}
-    </span><span class='text-[11px] max-w-20 truncate'>@${name}</span>`;
-  el.onclick=()=> openStoryViewer(s); return el;
-}
+/* ---------- Stories render/viewer ---------- */
 async function renderStories(){
   const row=$('storiesRow'); if(!row) return; row.innerHTML='';
-  const all=await fetchJson(pagesURL('indexes/stories.json'))||[]; const active=all.filter(s=> !s.expires_at || new Date(s.expires_at).getTime()>Date.now());
-  if(!active.length){ row.innerHTML=`<div class="text-xs text-black/60">No active stories</div>`; return }
-  const map=await pmap(); active.forEach(s=> row.appendChild(storyChip(s, map[s.author])));
+  const all=await fetchJson(pagesURL('indexes/stories.json'))||[];
+  const activeStories=all.filter(s=> !s.expires_at || new Date(s.expires_at).getTime()>Date.now());
+  if(!activeStories.length){ row.innerHTML=`<div class="text-xs text-black/60">No active stories</div>`; return }
+  const map=await pmap();
+  activeStories.forEach(s=>{
+    const name=map[s.author]?.display_name||s.author;
+    const el=document.createElement('button'); el.className='flex flex-col items-center gap-1';
+    el.innerHTML=`<span class='block h-16 w-16 rounded-full border-2 border-fuchsia-400 overflow-hidden'>
+      ${s.kind==='image'? `<img src='${s.thumb||s.src}' class='h-full w-full object-cover'>`:(s.kind==='video'? `<video src='${s.src}' class='h-full w-full object-cover' muted></video>`:`<div class='h-full w-full grid place-items-center text-xs bg-white/70'>📎</div>`)}
+    </span><span class='text-[11px] max-w-20 truncate'>@${name}</span>`;
+    el.onclick=()=> openStoryViewer(s);
+    row.appendChild(el);
+  });
 }
 function openStoryViewer(story){
   const modal=$('modal'); modal.classList.remove('hidden');
@@ -919,25 +929,15 @@ function openStoryViewer(story){
     </div>`;
   const bar=$('stBar'), wrap=$('stWrap'), meta=$('stMeta');
   if(story.kind==='video'){ const v=document.createElement('video'); v.src=story.src; v.autoplay=true; v.muted=true; v.playsInline=true; v.className='h-full w-full object-cover'; wrap.appendChild(v); }
-  else{ const img=document.createElement('img'); img.src=story.src; img.className='h-full w-full object-cover'; wrap.appendChild(img); }
+  else if(story.kind==='image'){ const img=document.createElement('img'); img.src=story.src; img.className='h-full w-full object-cover'; wrap.appendChild(img) }
+  else{ wrap.innerHTML=`<a class='underline' href='${story.src}' target='_blank'>Download file</a>` }
   meta.textContent=(story.author||'') + (story.caption? ' — '+story.caption:'');
   let t0=Date.now(), dur=7000, timer=setInterval(()=>{ const p=Math.min(1,(Date.now()-t0)/dur); bar.style.width=(p*100)+'%'; if(p>=1){ clearInterval(timer); modal.classList.add('hidden'); }},50);
   $('stClose').onclick=()=>{ clearInterval(timer); modal.classList.add('hidden'); };
   if($('stDel')) $('stDel').onclick=()=>{ clearInterval(timer); deleteStory(story.id) };
 }
 
-/* ----------------- Render feeds once ----------------- */
-async function renderFeeds(){ await renderHome(); await renderMoments(); await renderStories(); }
-renderFeeds();
-
-/* ----------------- Keyboard nav for reels ----------------- */
-document.addEventListener('keydown', (e)=>{
-  if($('tab-moments').classList.contains('hidden')) return;
-  const host=$('momFeed'); if(e.key.toLowerCase()==='j'){ host.scrollBy({top:host.clientHeight*0.9, behavior:'smooth'}) }
-  if(e.key.toLowerCase()==='k'){ host.scrollBy({top:-host.clientHeight*0.9, behavior:'smooth'}) }
-});
-
-/* ----------------- Settings modal ----------------- */
+/* ---------- Settings modal ---------- */
 $('openSettings').onclick = ()=>{
   const modal=$('modal'); modal.classList.remove('hidden');
   modal.innerHTML=`
@@ -948,8 +948,8 @@ $('openSettings').onclick = ()=>{
     </div>
     <div class='space-y-3 text-sm'>
       <div><div class='font-semibold'>Repository</div><div class='text-black/60'><code>${GH.owner}/${GH.repo}</code> — ${GH.pagesBase}</div></div>
-      <label class='block'>Personal Access Token (PAT)
-        <input id='ghToken' type='password' class='mt-1 w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm' placeholder='ghp_… (fine-grained; Contents: Read & Write)'>
+      <label class='block'>GitHub PAT (shared)
+        <input id='ghToken' type='password' class='mt-1 w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm' placeholder='ghp_… (Contents: Read & Write)'>
       </label>
       <div class='text-xs text-black/60'>Stored locally in your browser only.</div>
       <div class='flex justify-end gap-2'><button id='setSave' class='chip'>Save</button></div>
@@ -957,10 +957,10 @@ $('openSettings').onclick = ()=>{
   </div>`;
   $('ghToken').value=token();
   $('setClose').onclick=()=> modal.classList.add('hidden');
-  $('setSave').onclick=async ()=>{ set(S.cfg,{...get(S.cfg,{}), gh_pat:$('ghToken').value.trim()}); modal.classList.add('hidden'); try{ await ensureProfile(); alert('Saved & signed in ✓') }catch(e){ alert(e.message||String(e)) } };
+  $('setSave').onclick=()=>{ set(S.cfg,{...get(S.cfg,{}), gh_pat:$('ghToken').value.trim()}); modal.classList.add('hidden'); alert('Saved ✓') };
 };
 
-/* ----------------- Hashtag index updates ----------------- */
+/* ---------- Hashtag index updates ---------- */
 async function updateHashtags(tags, momentId){
   if(!tags || !tags.length) return;
   const cur=(await getFile('indexes/hashtags.json'))?.json || {};
@@ -975,42 +975,35 @@ async function updateHashtags(tags, momentId){
   await putJson('indexes/hashtags.json', cur, `hashtags: +${tags.join(',')}`);
 }
 
-/* =====================================================================
-   STUDIO PRO — canvas editor (filters, crop/zoom, rotate, text, emoji)
-   ===================================================================== */
-const studio = { open:false, index:null, img:null, imgBitmap:null, zoom:1, rot:0, panX:0, panY:0, bright:1, contrast:1, sat:1, hue:0, blur:0, overlays:[], pointers:new Map() };
+/* ---------- Studio Pro (same as before, but guarded) ---------- */
+const studio = { open:false, index:null, imgBitmap:null, zoom:1, rot:0, panX:0, panY:0, bright:1, contrast:1, sat:1, hue:0, blur:0, overlays:[], pointers:new Map() };
 const can=$('studioCanvas'); const ctx=can.getContext('2d');
 function fitCanvas(){ const box=can.parentElement.getBoundingClientRect(); can.width=Math.floor(box.width); can.height=Math.floor(box.width*16/9); }
 window.addEventListener('resize', ()=>{ if(studio.open){ fitCanvas(); drawStudio() }});
-function resetStudioState(){ studio.zoom=1; studio.rot=0; studio.panX=0; studio.panY=0; studio.bright=1; studio.contrast=1; studio.sat=1; studio.hue=0; studio.blur=0; studio.overlays=[]; studio.pointers.clear();
+function resetStudioState(){ Object.assign(studio,{ zoom:1, rot:0, panX:0, panY:0, bright:1, contrast:1, sat:1, hue:0, blur:0, overlays:[], pointers:new Map() });
   ['stZoom','stRotate','stPanX','stPanY','stBright','stContrast','stSat','stHue','stBlur'].forEach(id=> $(id).value=$(id).defaultValue);
 }
 async function openStudioWithFile(idx){
-  const obj=momSelected[idx]; if(!obj || !obj.file || !obj.file.type.startsWith('image')) return alert('Pick an image to edit');
+  const obj=momSelected[idx]; if(!obj || obj.kind!=='image') return alert('Pick an image to edit');
   studio.index=idx; studio.open=true; $('studio').classList.remove('hidden'); fitCanvas(); resetStudioState();
-  studio.img = await createImageBitmap(obj.file); studio.imgBitmap = studio.img; drawStudio();
+  studio.imgBitmap = await createImageBitmap(obj.file); drawStudio();
 }
-$('openStudio').onclick = ()=>{ if(!momSelected.length || !momSelected[0].file.type.startsWith('image')) return alert('Select an image'); openStudioWithFile(0) };
+$('openStudio').onclick = ()=>{ const i=momSelected.findIndex(x=>x.kind==='image'); if(i<0) return alert('Select an image'); openStudioWithFile(i) };
 can.addEventListener('pointerdown', (e)=>{ if(!studio.open) return; can.setPointerCapture(e.pointerId); studio.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}); });
-can.addEventListener('pointerup', (e)=> studio.pointers.delete(e.pointerId));
-can.addEventListener('pointercancel', (e)=> studio.pointers.delete(e.pointerId));
+can.addEventListener('pointerup',   (e)=> studio.pointers.delete(e.pointerId));
+can.addEventListener('pointercancel',(e)=> studio.pointers.delete(e.pointerId));
 can.addEventListener('pointermove', (e)=>{
   if(!studio.open || studio.pointers.size===0) return;
   const prev=studio.pointers.get(e.pointerId); if(!prev) return;
   const dx=e.clientX-prev.x, dy=e.clientY-prev.y; studio.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(studio.pointers.size===1){ studio.panX += dx; studio.panY += dy; $('stPanX').value=studio.panX; $('stPanY').value=studio.panY; drawStudio(); }
-  if(studio.pointers.size===2){
-    const pts=[...studio.pointers.values()];
-    const [p1,p2]=pts; const before=Math.hypot(p1.x-prev.x, p1.y-prev.y); const after=Math.hypot(p1.x-p2.x, p1.y-p2.y);
-    if(before>0){ studio.zoom = clamp(studio.zoom*(after/Math.max(1, before)), 0.5, 3); $('stZoom').value=studio.zoom; drawStudio(); }
-  }
 });
 ['stZoom','stRotate','stPanX','stPanY','stBright','stContrast','stSat','stHue','stBlur'].forEach(id=>{
   $(id).addEventListener('input', ()=>{ studio.zoom=+$('stZoom').value; studio.rot=+$('stRotate').value; studio.panX=+$('stPanX').value; studio.panY=+$('stPanY').value; studio.bright=+$('stBright').value; studio.contrast=+$('stContrast').value; studio.sat=+$('stSat').value; studio.hue=+$('stHue').value; studio.blur=+$('stBlur').value; drawStudio(); });
 });
 $('stAddText').onclick = ()=>{ studio.overlays.push({type:'text', x:can.width/2, y:can.height/2, text:'Your text', size:28, font:'600 28px sans-serif'}); drawStudio(); };
-$('stAddEmoji').onclick = ()=>{ studio.overlays.push({type:'emoji', x:can.width/2, y:can.height/2, text:'🎉', size:48}); drawStudio(); };
-$('stAddSticker').onclick = ()=>{ studio.overlays.push({type:'sticker', x:can.width/2, y:can.height/2, text:'NEW', size:32, font:'700 32px sans-serif'}); drawStudio(); };
+$('stAddEmoji').onclick= ()=>{ studio.overlays.push({type:'emoji', x:can.width/2, y:can.height/2, text:'🎉', size:48}); drawStudio(); };
+$('stAddSticker').onclick=()=>{ studio.overlays.push({type:'sticker', x:can.width/2, y:can.height/2, text:'NEW', size:32, font:'700 32px sans-serif'}); drawStudio(); };
 let dragIdx=-1;
 can.addEventListener('mousedown', (e)=>{ const r=can.getBoundingClientRect(); const x=e.clientX-r.left, y=e.clientY-r.top; dragIdx=studio.overlays.findIndex(o=> Math.hypot(o.x-x, o.y-y) < (o.size||30)); });
 can.addEventListener('mousemove', (e)=>{ if(dragIdx<0) return; const r=can.getBoundingClientRect(); const x=e.clientX-r.left, y=e.clientY-r.top; studio.overlays[dragIdx].x=x; studio.overlays[dragIdx].y=y; drawStudio(); });
@@ -1024,15 +1017,37 @@ function drawStudio(){
   ctx.translate(can.width/2 + studio.panX, can.height/2 + studio.panY); ctx.rotate(studio.rot * Math.PI/180);
   const w = studio.imgBitmap.width * studio.zoom; const h = studio.imgBitmap.height * studio.zoom;
   ctx.drawImage(studio.imgBitmap, -w/2, -h/2, w, h); ctx.restore();
-  studio.overlays.forEach(o=>{ ctx.save(); ctx.font = o.font || `${o.size||32}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='white'; ctx.strokeStyle='black'; ctx.lineWidth=4; ctx.strokeText(o.text, o.x, o.y); ctx.fillText(o.text, o.x, o.y); ctx.restore(); });
+  studio.overlays.forEach(o=>{ ctx.save(); ctx.font=o.font||`${o.size||32}px system-ui,-apple-system,Segoe UI,Roboto,sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='white'; ctx.strokeStyle='black'; ctx.lineWidth=4; ctx.strokeText(o.text, o.x, o.y); ctx.fillText(o.text, o.x, o.y); ctx.restore(); });
 }
 $('studioClose').onclick = ()=>{ $('studio').classList.add('hidden'); studio.open=false; };
-$('studioExport').onclick = async ()=>{ if(studio.index==null) return; const blob = await new Promise(res=> can.toBlob(res, 'image/jpeg', 0.9)); const file = new File([blob], `edited_${Date.now()}.jpg`, { type:'image/jpeg' }); momSelected[studio.index] = { file, name:file.name, edited:true }; $('studio').classList.add('hidden'); studio.open=false; drawThumbs(); };
+$('studioExport').onclick = async ()=>{ if(studio.index==null) return; const blob = await new Promise(res=> can.toBlob(res, 'image/jpeg', 0.9)); const file = new File([blob], `edited_${Date.now()}.jpg`, { type:'image/jpeg' }); momSelected[studio.index] = { file, name:file.name, kind:'image', edited:true }; $('studio').classList.add('hidden'); studio.open=false; drawThumbs(); };
 
-/* ----------------- Feeds bootstrap + debounced renders ----------------- */
+/* ---------- Debounced full render (prevents stack explosions) ---------- */
 function deb(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms) } }
+const renderFeeds = async ()=>{ await renderHome(); await renderMoments(); await renderStories(); };
 const safeRenderFeeds = deb(renderFeeds, 50);
 safeRenderFeeds();
+
+/* ---------- Keyboard nav for reels ---------- */
+document.addEventListener('keydown', (e)=>{
+  if($('tab-moments').classList.contains('hidden')) return;
+  const host=$('momFeed'); if(e.key.toLowerCase()==='j'){ host.scrollBy({top:host.clientHeight*0.9, behavior:'smooth'}) }
+  if(e.key.toLowerCase()==='k'){ host.scrollBy({top:-host.clientHeight*0.9, behavior:'smooth'}) }
+});
+
+/* ---------- Hashtag updates ---------- */
+async function updateHashtags(tags, momentId){
+  if(!tags || !tags.length) return;
+  const cur=(await getFile('indexes/hashtags.json'))?.json || {};
+  const ts=Date.now();
+  tags.forEach(t=>{
+    const k=t.toLowerCase();
+    cur[k]=cur[k]||{ count:0, last:0, moments:[] };
+    cur[k].count += 1; cur[k].last = ts;
+    cur[k].moments = [momentId, ...cur[k].moments.filter(id=> id!==momentId)].slice(0,100);
+  });
+  await putJson('indexes/hashtags.json', cur, `hashtags: +${tags.join(',')}`);
+}
 </script>
 </body>
 </html>
