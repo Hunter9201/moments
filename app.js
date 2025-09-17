@@ -1,6 +1,9 @@
 /* ===========================================================
    Moments — Private Hub via GitHub Contents API (Pages only)
-   Now with SELF-REGISTRATION (writes users/users.json)
+   Self-registration + GH-PAT + images/videos only + 48h stories
+   Unread counts • Delete • Autoplay • Simple Studio • No recursion
+   Connect/Settings/Sign-in buttons -> event delegation (always work)
+   Defaults to owner: hunter9201, repo: momentshub-data, branch: main
    =========================================================== */
 
 /* ------------------ Small helpers ------------------ */
@@ -31,6 +34,7 @@ const clrSS=(k)=>{ try{sessionStorage.removeItem(k)}catch{} };
 const GH = { owner:'', repo:'', branch:'main', token:'' };
 function setGH(cfg){ Object.assign(GH,cfg||{}); setSS(SS.gh, GH); }
 function ghHeaders(raw=false){
+  // If your PAT is a fine-grained token, "Bearer" also works; classic PAT supports "token"
   return { 'Authorization':'token '+GH.token, 'Accept': raw?'application/vnd.github.v3.raw':'application/vnd.github+json' };
 }
 async function ghGet(path, raw=false){
@@ -45,7 +49,6 @@ async function ghGetJSON(path){
     const content = meta.content ? atob(meta.content.replace(/\n/g,'')) : '';
     return JSON.parse(content||'{}');
   }catch(e){
-    // If users.json missing, initialize empty
     if(String(e.message||'').includes('404') && path==='users/users.json'){
       await ghPutText('users/users.json', JSON.stringify({users:[]},null,2), 'init users');
       return {users:[]};
@@ -106,27 +109,22 @@ let storiesCache=[];                     // stories
 
 /* ------------------ UI chrome and modals ------------------ */
 function ensureUIChrome(){
+  const area = byId('authArea') || document.querySelector('header .flex.items-center.gap-2');
+
   // Auth pills
-  const headerWrap = document.querySelector('header .flex.items-center.gap-2');
-  if(headerWrap && !document.getElementById('signInBtn')){
-    const si=document.createElement('button'); si.id='signInBtn'; si.textContent='Sign in';
+  if(area && !byId('signInBtn')){
+    const si=document.createElement('button'); si.id='signInBtn'; si.type='button'; si.textContent='Sign in';
     si.className='rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold shadow-sm';
-    headerWrap.appendChild(si);
-
-    const su=document.createElement('button'); su.id='signUpBtn'; su.textContent='Sign up';
+    const su=document.createElement('button'); su.id='signUpBtn'; su.type='button'; su.textContent='Sign up';
     su.className='rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold shadow-sm';
-    headerWrap.appendChild(su);
-
-    const lo=document.createElement('button'); lo.id='logoutBtn'; lo.textContent='Log out';
+    const lo=document.createElement('button'); lo.id='logoutBtn'; lo.type='button'; lo.textContent='Log out';
     lo.className='rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold shadow-sm hidden';
-    headerWrap.appendChild(lo);
-
     const pill=document.createElement('div'); pill.id='userPill'; pill.className='flex items-center gap-2 ml-2';
     pill.innerHTML=`<img id="userAvatar" class="hidden h-7 w-7 rounded-full border border-black/10"><span id="userName" class="hidden text-xs font-semibold"></span>`;
-    headerWrap.appendChild(pill);
+    area.appendChild(si); area.appendChild(su); area.appendChild(lo); area.appendChild(pill);
   }
   // Sign in modal
-  if(!document.getElementById('authModal')){
+  if(!byId('authModal')){
     const m=document.createElement('div'); m.id='authModal'; m.className='hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4';
     m.innerHTML=`
       <div class="w-full max-w-md rounded-2xl bg-white p-4 shadow-lg">
@@ -143,7 +141,7 @@ function ensureUIChrome(){
     document.body.appendChild(m);
   }
   // Sign up modal
-  if(!document.getElementById('regModal')){
+  if(!byId('regModal')){
     const m=document.createElement('div'); m.id='regModal'; m.className='hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4';
     m.innerHTML=`
       <div class="w-full max-w-md rounded-2xl bg-white p-4 shadow-lg">
@@ -163,7 +161,7 @@ function ensureUIChrome(){
     document.body.appendChild(m);
   }
   // Settings modal
-  if(!document.getElementById('settingsModal')){
+  if(!byId('settingsModal')){
     const m=document.createElement('div'); m.id='settingsModal'; m.className='hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4';
     m.innerHTML=`
       <div class="w-full max-w-md rounded-2xl bg-white p-4 shadow-lg">
@@ -183,7 +181,7 @@ function ensureUIChrome(){
     document.body.appendChild(m);
   }
   // Connect modal
-  if(!document.getElementById('connectModal')){
+  if(!byId('connectModal')){
     const m=document.createElement('div'); m.id='connectModal'; m.className='hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4';
     m.innerHTML=`
       <div class="w-full max-w-md rounded-2xl bg-white p-4 shadow-lg">
@@ -202,12 +200,12 @@ function ensureUIChrome(){
       </div>`;
     document.body.appendChild(m);
   }
-  // Story viewer and Studio (simple)
-  if(!document.getElementById('storyModal')){
+  // Story viewer and Studio
+  if(!byId('storyModal')){
     const m=document.createElement('div'); m.id='storyModal'; m.className='hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4';
     document.body.appendChild(m);
   }
-  if(!document.getElementById('studio')){
+  if(!byId('studio')){
     const s=document.createElement('div'); s.id='studio'; s.className='hidden fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4';
     s.innerHTML=`<div class="w-full max-w-2xl rounded-2xl bg-white p-4 shadow-lg">
       <div class="flex items-center justify-between mb-2">
@@ -227,9 +225,8 @@ function normHandle(h){ if(!h) return ''; h=h.replace(/^@/,'').trim(); if(!/^[A-
 function getUser(){ return getSS(SS.auth); }
 function setUser(u){ setSS(SS.auth,u); applyUserToUI(u); }
 function clearUser(){ clrSS(SS.auth); applyUserToUI(null); }
-
 async function fetchAllowedUsers(){
-  allowedUsersCache = await ghGetJSON('users/users.json'); // may auto-init
+  allowedUsersCache = await ghGetJSON('users/users.json');
   if(!allowedUsersCache || !Array.isArray(allowedUsersCache.users)) throw new Error('users.json invalid');
   return allowedUsersCache.users;
 }
@@ -259,7 +256,7 @@ function bindSearch(){
 
 /* ------------------ GH-backed Stories/Moments ------------------ */
 async function ghLoadMoments(){
-  const me=getUser(); if(!me) return (momentsCache=[],[]);
+  const me=getUser(); if(!me){ momentsCache=[]; return []; }
   const folders = await ghListDir('moments');
   const files = [];
   for(const f of folders){ if(f.type==='dir'){ const inside=await ghListDir(f.path); inside.forEach(x=> x.type==='file' && x.name.endsWith('.json') && files.push(x)); } }
@@ -269,7 +266,7 @@ async function ghLoadMoments(){
   momentsCache = metas;
 }
 async function ghLoadStories(){
-  const me=getUser(); if(!me) return (storiesCache=[],[]);
+  const me=getUser(); if(!me){ storiesCache=[]; return []; }
   const folders = await ghListDir('stories');
   const files = [];
   for(const f of folders){ if(f.type==='dir'){ const inside=await ghListDir(f.path); inside.forEach(x=> x.type==='file' && x.name.endsWith('.json') && files.push(x)); } }
@@ -278,7 +275,6 @@ async function ghLoadStories(){
   const nowTs=now();
   storiesCache = metas.filter(s=> (nowTs-(s.created||0))<STORY_TTL).sort((a,b)=> (b.created||0)-(a.created||0));
 }
-
 async function ghUploadMediaFile(handle, file){
   const ts = Date.now();
   const safeName = file.name.replace(/[^A-Za-z0-9._-]/g,'_');
@@ -320,7 +316,6 @@ async function ghDeleteStory(meta){
   await ghDelete(path, `delete story ${meta.id}`);
   if(meta.mediaPath) await ghDelete(meta.mediaPath, `delete story media ${meta.id}`);
 }
-
 async function blobURLFor(mediaPath){ return await ghGetRawBlobURL(mediaPath); }
 
 /* ------------------ Rendering ------------------ */
@@ -332,7 +327,6 @@ function autoPlayVisible(){
   }), {threshold:[0,0.25,0.5,0.75,1]});
   vids.forEach(v=> obs.observe(v));
 }
-
 async function renderHomeFeed(){
   const host=byId('homeFeed'); const me=getUser();
   if(!me){ host.innerHTML = `<div class="p-4 text-sm text-black/60">Sign in to view the feed.</div>`; return; }
@@ -341,12 +335,10 @@ async function renderHomeFeed(){
     const wrap=document.createElement('div');
     wrap.className='mom-item rounded-2xl border border-black/10 bg-black/90 text-white overflow-hidden relative';
     wrap.dataset.searchable = `${(m.caption||'')+' '+(m.tags||[]).join(' ')+' '+(m.author||'')}`.toLowerCase();
-
     const mediaURL = await blobURLFor(m.mediaPath);
     const mediaHTML = m.kind==='video'
       ? `<video class="mom-video absolute inset-0 h-full w-full object-cover" src="${mediaURL}" playsinline muted loop></video>`
       : `<img class="absolute inset-0 h-full w-full object-cover" src="${mediaURL}" alt="">`;
-
     wrap.innerHTML=`
       <div class='aspect-[9/16] w-full relative'>
         ${mediaHTML}
@@ -374,7 +366,6 @@ async function renderHomeFeed(){
   });
   autoPlayVisible();
 }
-
 async function renderMomentsFeed(){
   const host=byId('momentsFeed'); const me=getUser();
   if(!me){ host.innerHTML = `<div class="p-4 text-sm text-black/60">Sign in to view moments.</div>`; return; }
@@ -383,7 +374,6 @@ async function renderMomentsFeed(){
     const wrap=document.createElement('div');
     wrap.className='mom-item rounded-2xl border border-black/10 bg-black/90 text-white overflow-hidden relative';
     wrap.dataset.searchable = `${(m.caption||'')+' '+(m.tags||[]).join(' ')+' '+(m.author||'')}`.toLowerCase();
-
     const mediaURL = await blobURLFor(m.mediaPath);
     const media = m.kind==='video'
       ? `<video class="mom-video absolute inset-0 h-full w-full object-cover" src="${mediaURL}" playsinline muted loop></video>`
@@ -641,7 +631,16 @@ function bindKeyboardNav(){
 }
 
 /* ------------------ Connect & Settings ------------------ */
-function openConnect(){ const m=byId('connectModal'); const gh=getSS(SS.gh)||{}; byId('ghOwner').value=gh.owner||'hunter9201'; byId('ghRepo').value=gh.repo||'momentshub-data'; byId('ghBranch').value=gh.branch||'main'; byId('ghToken').value=gh.token||''; m.classList.remove('hidden'); }
+function openConnect(){
+  ensureUIChrome();
+  const m = byId('connectModal');
+  const gh = getSS(SS.gh) || {};
+  byId('ghOwner').value  = gh.owner  || 'hunter9201';
+  byId('ghRepo').value   = gh.repo   || 'momentshub-data';
+  byId('ghBranch').value = gh.branch || 'main';
+  byId('ghToken').value  = gh.token  || '';
+  m.classList.remove('hidden');
+}
 function closeConnect(){ byId('connectModal').classList.add('hidden'); }
 function openSettings(){ const u=getUser()||{}; byId('stDisplay').value=u.display||''; byId('stAvatar').value=u.avatar||''; byId('stBio').value=u.bio||''; byId('settingsModal').classList.remove('hidden'); }
 function closeSettings(){ byId('settingsModal').classList.add('hidden'); }
@@ -650,8 +649,6 @@ function closeSettings(){ byId('settingsModal').classList.add('hidden'); }
 async function registerUser(handle, display, avatar, bio){
   handle = normHandle(handle); if(!handle) throw new Error('Invalid handle');
   display = (display||handle).trim(); avatar=(avatar||'').trim(); bio=(bio||'').trim();
-
-  // Try up to 3 times in case of race (conflict)
   for(let attempt=0; attempt<3; attempt++){
     const usersDoc = await ghGetJSON('users/users.json');
     const arr = Array.isArray(usersDoc.users)? usersDoc.users : (usersDoc.users=[]);
@@ -683,28 +680,35 @@ async function refreshAll(){
   await refreshMoments(); await refreshStories(); await renderContacts();
 }
 
-/* ------------------ Boot ------------------ */
+/* ------------------ BOOT ------------------ */
 ready(async ()=>{
   ensureUIChrome();
+
+  // Global delegated clicks: buttons always work even if DOM changes
+  document.addEventListener('click', (e)=>{
+    const sel = (s)=> e.target.closest(s);
+    if (sel('#connectGitHub')) { e.preventDefault(); openConnect(); return; }
+    if (sel('#openSettings') || sel('#openSettings2')) { e.preventDefault(); openSettings(); return; }
+    if (sel('#signInBtn')) { e.preventDefault(); ensureUIChrome(); byId('authModal').classList.remove('hidden'); return; }
+    if (sel('#signUpBtn')) { e.preventDefault(); ensureUIChrome(); byId('regModal').classList.remove('hidden'); return; }
+    if (sel('#logoutBtn')) { e.preventDefault(); clearUser(); toast('Logged out'); refreshAll(); return; }
+    if (sel('#authClose')) { e.preventDefault(); byId('authModal').classList.add('hidden'); return; }
+    if (sel('#regClose')) { e.preventDefault(); byId('regModal').classList.add('hidden'); return; }
+    if (sel('#settingsClose')) { e.preventDefault(); closeSettings(); return; }
+    if (sel('#connectClose')) { e.preventDefault(); closeConnect(); return; }
+  });
 
   // Nav, search, keyboard, composer, chat send
   bindTabs(); bindSearch(); bindKeyboardNav(); bindComposer();
   on(byId('chatSend'),'click', sendChatMessage);
 
-  // Header: settings/connect
-  on(byId('openSettings'),'click', openSettings);
-  on(byId('openSettings2'),'click', openSettings);
-  on(byId('connectGitHub'),'click', openConnect);
-
-  // Settings modal
-  on(byId('settingsClose'),'click', closeSettings);
+  // Settings save
   on(byId('settingsSave'),'click', ()=>{
     const u=getUser()||{}; const next={...u, display:(byId('stDisplay').value||'').trim(), avatar:(byId('stAvatar').value||'').trim(), bio:(byId('stBio').value||'').trim()};
     setUser(next); toast('Saved');
   });
 
-  // Connect modal
-  on(byId('connectClose'),'click', closeConnect);
+  // Connect save
   on(byId('connectSave'),'click', async ()=>{
     const owner=(byId('ghOwner').value||'').trim();
     const repo=(byId('ghRepo').value||'').trim();
@@ -719,9 +723,7 @@ ready(async ()=>{
     }catch(e){ toast(e.message||'Connect failed'); }
   });
 
-  // Auth buttons
-  on(byId('signInBtn'),'click', ()=> byId('authModal').classList.remove('hidden'));
-  on(byId('authClose'),'click', ()=> byId('authModal').classList.add('hidden'));
+  // Auth submit
   on(byId('authSubmit'),'click', async ()=>{
     try{
       const h = normHandle((byId('auHandle').value||'').trim()); if(!h) return;
@@ -735,9 +737,7 @@ ready(async ()=>{
     }catch(e){ toast(e.message||'Auth failed'); }
   });
 
-  // Sign up buttons
-  on(byId('signUpBtn'),'click', ()=> byId('regModal').classList.remove('hidden'));
-  on(byId('regClose'),'click', ()=> byId('regModal').classList.add('hidden'));
+  // Sign up submit
   on(byId('regSubmit'),'click', async ()=>{
     try{
       if(!GH.token){ openConnect(); toast('Connect with PAT first'); return; }
@@ -753,15 +753,14 @@ ready(async ()=>{
     }catch(e){ toast(e.message||'Sign up failed'); }
   });
 
-  // Logout
-  on(byId('logoutBtn'),'click', ()=>{ clearUser(); toast('Logged out'); refreshAll(); });
-
   // Existing GH config?
   const ghCfg=getSS(SS.gh);
-  if(!ghCfg || !ghCfg.token){ openConnect(); }
-  else{
+  if (!ghCfg || !ghCfg.token) {
+    setTimeout(() => openConnect(), 0);
+  } else {
     setGH(ghCfg);
-    try{ await fetchAllowedUsers(); }catch(e){ toast(e.message||'connect failed'); openConnect(); return; }
+    try { await fetchAllowedUsers(); }
+    catch (e) { toast(e.message || 'Connect failed'); openConnect(); return; }
     await refreshAll();
   }
 
