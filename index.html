@@ -3,100 +3,95 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Moments — Hub</title>
-  <meta name="color-scheme" content="light">
+  <title>Moments — GH Pages Social</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Optional: HEIC -> JPEG conversion for iPhone photos -->
-  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
   <style>
-    html,body{height:100%}
-    .radial-bg{background-image:radial-gradient(1200px 600px at 20% -10%, rgba(59,130,246,.10), transparent), radial-gradient(900px 400px at 90% -10%, rgba(217,70,239,.10), transparent)}
     .card{box-shadow:0 10px 30px rgba(2,6,23,.06)}
-    .mom-feed{scroll-snap-type:y mandatory; overflow-y:auto; max-height:85vh}
-    .mom-item{scroll-snap-align:center}
     .chip{font-size:.7rem;padding:.2rem .5rem;border-radius:999px;background:rgba(0,0,0,.08)}
+    .mom-scroll{scroll-snap-type:y mandatory;max-height:85vh;overflow:auto}
+    .mom-item{scroll-snap-align:center}
   </style>
 </head>
-<body class="min-h-screen radial-bg text-slate-900">
-
+<body class="min-h-screen bg-slate-50 text-slate-900">
   <!-- Header -->
   <header class="sticky top-0 z-40 border-b border-black/10 bg-white/80 backdrop-blur">
-    <div class="mx-auto max-w-7xl px-4 py-3">
-      <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="mx-auto max-w-6xl px-4 py-3">
+      <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-3">
           <div class="h-9 w-9 animate-[spin_9s_linear_infinite] rounded-xl bg-gradient-to-br from-sky-300 via-fuchsia-300 to-amber-300"></div>
           <div>
             <div class="text-xs uppercase tracking-widest text-black/60">Moments</div>
-            <div class="text-lg font-extrabold leading-5">Community Hub</div>
+            <div class="text-lg font-extrabold leading-5">GitHub Pages Social</div>
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <input id="search" placeholder="Search…" class="w-64 max-w-[70vw] rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm shadow-sm outline-none placeholder:text-black/40 focus:border-black/20 focus:ring-2 focus:ring-black/10"/>
+          <input id="search" placeholder="Search…" class="w-64 max-w-[60vw] rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm shadow-sm outline-none placeholder:text-black/40 focus:ring-2 focus:ring-black/10"/>
           <button id="connectGitHub" class="rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold shadow-sm">🔗 Connect</button>
           <button id="openSettings" class="rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold shadow-sm">⚙ Settings</button>
+          <!-- Sign in / up / out get injected here by JS -->
         </div>
       </div>
       <nav class="mt-3 flex flex-wrap gap-2">
-        <button data-tab="home" class="tab-btn rounded-full bg-white px-3 py-1 text-xs font-semibold shadow">Feed</button>
-        <button data-tab="moments" class="tab-btn rounded-full px-3 py-1 text-xs font-semibold text-black/70">Moments</button>
-        <button data-tab="chat" class="tab-btn rounded-full px-3 py-1 text-xs font-semibold text-black/70">Chat</button>
-        <button data-tab="profile" class="tab-btn rounded-full px-3 py-1 text-xs font-semibold text-black/70">Profile</button>
+        <button data-tab="home"    class="rounded-full bg-white px-3 py-1 text-xs font-semibold shadow">Feed</button>
+        <button data-tab="moments" class="rounded-full px-3 py-1 text-xs font-semibold text-black/70">Moments</button>
+        <button data-tab="chat"    class="rounded-full px-3 py-1 text-xs font-semibold text-black/70">Chat</button>
+        <button data-tab="profile" class="rounded-full px-3 py-1 text-xs font-semibold text-black/70">Profile</button>
       </nav>
     </div>
   </header>
 
-  <main class="mx-auto max-w-7xl px-4 py-6 space-y-8">
+  <!-- Main -->
+  <main class="mx-auto max-w-6xl px-4 py-6 space-y-8">
+
     <!-- HOME (Feed) -->
     <section id="tab-home" class="space-y-4">
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="flex items-center justify-between">
-          <div class="text-xs uppercase tracking-widest text-black/50">For You</div>
-          <div class="flex items-center gap-2 text-xs"><span class="chip">Swipe / Scroll</span><span class="chip">J/K = Next/Prev</span></div>
-        </div>
-        <div id="homeFeed" class="mom-feed mt-3 px-1 pb-2 space-y-4"></div>
-      </div>
-    </section>
-
-    <!-- MOMENTS (Stories + Moments) -->
-    <section id="tab-moments" class="hidden space-y-4">
-      <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
-        <div class="flex items-center justify-between">
           <div class="text-xs uppercase tracking-widest text-black/50">Stories (48h)</div>
-          <label class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm cursor-pointer">
-            ➕ Add Story
-            <input id="storyFile" type="file" accept="image/*,video/*" class="hidden" multiple>
+          <label class="cursor-pointer rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">➕ Add Story
+            <input id="storyFile" type="file" multiple accept="image/*,video/*" class="hidden">
           </label>
         </div>
         <div id="storiesStrip" class="mt-3 flex gap-3 overflow-x-auto pb-2"></div>
       </div>
 
+      <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
+        <div class="flex items-center justify-between">
+          <div class="text-xs uppercase tracking-widest text-black/50">Feed</div>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="chip">Scroll</span><span class="chip">J/K for nav</span>
+          </div>
+        </div>
+        <div id="homeFeed" class="mom-scroll mt-3 space-y-4"></div>
+      </div>
+    </section>
+
+    <!-- MOMENTS (Composer + vertical feed) -->
+    <section id="tab-moments" class="hidden space-y-4">
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <!-- Composer -->
         <div class="order-2 lg:order-1 lg:col-span-1 rounded-2xl border border-black/10 bg-white/80 p-4 card h-max">
-          <div class="text-xs uppercase tracking-widest text-black/50">Create a Moment</div>
+          <div class="text-xs uppercase tracking-widest text-black/50">Create Moments</div>
           <div class="mt-3 grid gap-2 text-sm">
-            <label class="rounded-xl border border-black/10 bg-white/80 px-3 py-2 shadow-sm cursor-pointer">
-              📤 Upload up to 4 (images/videos)
-              <input id="momFile" type="file" accept="image/*,video/*" class="hidden" multiple>
+            <label class="cursor-pointer rounded-xl border border-black/10 bg-white/80 px-3 py-2 shadow-sm">📤 Upload up to 4 (images/videos)
+              <input id="momFile" type="file" accept="image/*,video/*" multiple class="hidden">
             </label>
             <div id="momThumbs" class="grid grid-cols-4 gap-2"></div>
-            <div class="flex items-center justify-between">
-              <button id="openStudio" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">🛠 Open Studio</button>
-              <small class="text-black/50">Images/videos only. HEIC auto-converted.</small>
-            </div>
             <input id="momCaption" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Caption"/>
-            <input id="momTags" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="#tags (comma separated)"/>
-            <button id="momPost" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Post</button>
+            <input id="momTags" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="#tags comma separated"/>
+            <div class="flex gap-2">
+              <button id="momPost" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Post</button>
+              <button id="openStudio" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Open Studio</button>
+            </div>
+            <small class="text-black/50">Only registered users can post & view.</small>
           </div>
         </div>
 
-        <!-- Moments Feed -->
-        <div class="order-1 lg:order-2 lg:col-span-2 rounded-2xl border border-black/10 bg-white/80 p-0 card">
-          <div class="flex items-center justify-between p-4">
-            <div class="text-xs uppercase tracking-widest text-black/50">Latest Moments</div>
-            <div class="flex items-center gap-2 text-xs"><span class="chip">Autoplay</span><span class="chip">J/K nav</span></div>
+        <div class="order-1 lg:order-2 lg:col-span-2 rounded-2xl border border-black/10 bg-white/80 p-4 card">
+          <div class="flex items-center justify-between">
+            <div class="text-xs uppercase tracking-widest text-black/50">Moments</div>
+            <div class="flex items-center gap-2 text-xs"><span class="chip">Auto-play videos</span></div>
           </div>
-          <div id="momentsFeed" class="mom-feed px-3 pb-4 space-y-4"></div>
+          <div id="momentsFeed" class="mom-scroll mt-3 space-y-4"></div>
         </div>
       </div>
     </section>
@@ -104,12 +99,14 @@
     <!-- CHAT -->
     <section id="tab-chat" class="hidden space-y-6">
       <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div class="md:col-span-1 rounded-2xl border border-black/10 bg-white/80 p-4 card">
-          <div class="text-xs uppercase tracking-widest text-black/50 mb-2">Contacts</div>
-          <div id="contacts" class="grid gap-2"></div>
+        <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
+          <div class="text-xs uppercase tracking-widest text-black/50">Contacts</div>
+          <div id="contacts" class="mt-3 grid gap-2 text-sm"></div>
         </div>
         <div class="md:col-span-2 rounded-2xl border border-black/10 bg-white/80 p-4 card">
-          <div id="chatWith" class="text-xs uppercase tracking-widest text-black/50">Pick a contact</div>
+          <div class="flex items-center justify-between">
+            <div id="chatWith" class="text-xs uppercase tracking-widest text-black/50">Pick a contact</div>
+          </div>
           <div id="chatLog" class="mt-3 h-72 overflow-y-auto rounded-xl border border-black/5 bg-white/70 p-3 text-sm"></div>
           <div class="mt-3 flex gap-2">
             <input id="chatMsg" class="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/10" placeholder="Type a message…"/>
@@ -120,29 +117,27 @@
     </section>
 
     <!-- PROFILE -->
-    <section id="tab-profile" class="hidden space-y-6">
+    <section id="tab-profile" class="hidden space-y-4">
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
-        <div class="flex items-center gap-4">
-          <img id="pfAvatar" class="h-16 w-16 rounded-full border border-black/10"/>
+        <div class="flex items-center gap-3">
+          <img id="pfAvatar" class="h-12 w-12 rounded-full border border-black/10"/>
           <div>
-            <div id="pfName" class="text-lg font-bold">Guest</div>
+            <div id="pfName" class="font-semibold">Guest</div>
             <div id="pfHandle" class="text-sm text-black/60">@guest</div>
-            <div id="pfBio" class="text-sm text-black/70 mt-1"></div>
-          </div>
-          <div class="ml-auto flex gap-2">
-            <button id="openSettings2" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Edit Profile</button>
           </div>
         </div>
-        <div class="mt-3 text-xs text-black/60">Only users registered in <code>users/users.json</code> can post/view content.</div>
+        <p id="pfBio" class="mt-3 text-sm text-black/70"></p>
+        <div class="mt-3">
+          <button id="openSettings2" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Edit Profile</button>
+        </div>
       </div>
     </section>
   </main>
 
-  <footer class="mt-6 grid place-items-center pb-16 text-center text-xs text-black/60">
-    <div>Powered by GitHub Pages + GitHub API. Keep your PAT private. This app never sends data to other servers.</div>
-  </footer>
+  <!-- Modals & Studio are injected by JS -->
 
-  <!-- The app injects modals here (auth, connect, settings, studio, story viewer) -->
+  <!-- Optional HEIC support (safe if absent) -->
+  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>
