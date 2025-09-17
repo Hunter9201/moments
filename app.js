@@ -1,10 +1,16 @@
 /* ===========================================================
-   Moments — Private Hub via GitHub Contents API (Pages only)
-   Fix: media display via Git Git/Blobs API (no redirect/CORS)
-   Self-registration + GH-PAT + images/videos only + 48h stories
-   Unread counts • Delete • Autoplay • Simple Studio • No recursion
-   Connect/Settings/Sign-in buttons -> event delegation (always work)
-   Defaults to owner: hunter9201, repo: momentshub-data, branch: main
+   Moments — GH Pages Hub
+   - Default repo: owner= hunter9201, repo= moments, branch= main
+   - GitHub PAT connect (sessionStorage)
+   - Self sign-up writes to users/users.json
+   - Only registered users can post/view
+   - Images/videos only (HEIC auto→JPEG)
+   - Stories expire after 48h
+   - Moments/Stories: up to 4 files per post
+   - Autoplay feed; J/K navigation
+   - Chat with unread counts; delete posts/messages
+   - Robust media display: Pages URL first, Git Blob fallback
+   - Delegated events; no recursion (no call stack errors)
    =========================================================== */
 
 /* ------------------ Small helpers ------------------ */
@@ -25,14 +31,14 @@ function toast(msg){
   t.textContent=String(msg); t.style.opacity='1'; setTimeout(()=>{t.style.opacity='0'},3200);
 }
 
-/* ------------------ Session storage ------------------ */
+/* ------------------ Session storage keys ------------------ */
 const SS = { auth:'mh:ss:auth', gh:'mh:ss:gh' };
 const getSS=(k)=>{ try{return JSON.parse(sessionStorage.getItem(k))||null}catch{return null} };
 const setSS=(k,v)=>{ try{sessionStorage.setItem(k,JSON.stringify(v))}catch{} };
 const clrSS=(k)=>{ try{sessionStorage.removeItem(k)}catch{} };
 
 /* ------------------ GitHub API client ------------------ */
-const GH = { owner:'', repo:'', branch:'main', token:'' };
+const GH = { owner:'hunter9201', repo:'moments', branch:'main', token:'' }; // <- default to the Pages repo
 function setGH(cfg){ Object.assign(GH,cfg||{}); setSS(SS.gh, GH); }
 function ghHeaders(raw=false){
   return { 'Authorization':'token '+GH.token, 'Accept': raw?'application/vnd.github.v3.raw':'application/vnd.github+json' };
@@ -94,37 +100,41 @@ async function ghListDir(path){
   return Array.isArray(arr) ? arr : [];
 }
 
-/* ------ NEW: robust raw loader via Git Data Blobs (no redirects) ------ */
+/* ------ Media URL: Pages first, then Git Blob fallback ------ */
+function pagesURLFromPath(path){
+  return `https://${GH.owner}.github.io/${GH.repo}/${path}`;
+}
 function guessMime(name=''){
   const ext = name.split('.').pop().toLowerCase();
-  switch(ext){
-    case 'jpg': case 'jpeg': return 'image/jpeg';
-    case 'png': return 'image/png';
-    case 'webp': return 'image/webp';
-    case 'gif': return 'image/gif';
-    case 'mp4': case 'm4v': return 'video/mp4';
-    case 'webm': return 'video/webm';
-    case 'mov': return 'video/quicktime';
-    default: return 'application/octet-stream';
-  }
+  if(['jpg','jpeg'].includes(ext)) return 'image/jpeg';
+  if(ext==='png') return 'image/png';
+  if(ext==='webp') return 'image/webp';
+  if(ext==='gif') return 'image/gif';
+  if(['mp4','m4v'].includes(ext)) return 'video/mp4';
+  if(ext==='webm') return 'video/webm';
+  if(ext==='mov') return 'video/quicktime';
+  return 'application/octet-stream';
 }
-async function ghBlobURLFromPath(path){
-  // 1) Get metadata to learn file SHA and name
-  const meta = await ghGet(path,false);              // { name, sha, ... }
+async function mediaURLFromPath(path){
+  // 1) Try public Pages (same repo) — fastest & no token required
+  const url = pagesURLFromPath(path);
+  try {
+    const head = await fetch(url, { method:'HEAD', cache:'no-store' });
+    if (head.ok) return url;
+  } catch(_) {}
+  // 2) Fallback to Git Data blob (no redirect/CORS issues)
+  const meta = await ghGet(path,false);
   const sha = meta.sha, name = meta.name || '';
-  // 2) Fetch blob by SHA (always returns base64 JSON, no redirect)
   const res = await fetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}/git/blobs/${sha}`, { headers: ghHeaders(false) });
   if(!res.ok) throw new Error(`Git blob ${sha} ${res.status}`);
   const blobJson = await res.json();
   const b64data = (blobJson.content || '').replace(/\n/g,'');
-  // 3) Decode base64 -> Uint8Array -> Blob -> objectURL
   const bin = atob(b64data);
   const bytes = new Uint8Array(bin.length);
   for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
   const blob = new Blob([bytes], { type: guessMime(name) });
   return URL.createObjectURL(blob);
 }
-async function blobURLFor(mediaPath){ return await ghBlobURLFromPath(mediaPath); }
 
 /* ------------------ App State ------------------ */
 const STORY_TTL = 48*60*60*1000; // 48h
@@ -134,11 +144,10 @@ let allowedUsersCache=null;              // {users:[...]}
 let momentsCache=[];                     // moments
 let storiesCache=[];                     // stories
 
-/* ------------------ UI chrome and modals ------------------ */
+/* ------------------ UI chrome & modals ------------------ */
 function ensureUIChrome(){
-  const area = byId('authArea') || document.querySelector('header .flex.items-center.gap-2');
-
-  // Auth pills
+  // Auth buttons injected to header right group
+  const area = document.querySelector('header .flex.items-center.gap-2');
   if(area && !byId('signInBtn')){
     const si=document.createElement('button'); si.id='signInBtn'; si.type='button'; si.textContent='Sign in';
     si.className='rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold shadow-sm';
@@ -150,7 +159,7 @@ function ensureUIChrome(){
     pill.innerHTML=`<img id="userAvatar" class="hidden h-7 w-7 rounded-full border border-black/10"><span id="userName" class="hidden text-xs font-semibold"></span>`;
     area.appendChild(si); area.appendChild(su); area.appendChild(lo); area.appendChild(pill);
   }
-  // Sign in modal
+  // Modals (Auth / Sign up / Settings / Connect / Story viewer / Studio)
   if(!byId('authModal')){
     const m=document.createElement('div'); m.id='authModal'; m.className='hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4';
     m.innerHTML=`
@@ -167,7 +176,6 @@ function ensureUIChrome(){
       </div>`;
     document.body.appendChild(m);
   }
-  // Sign up modal
   if(!byId('regModal')){
     const m=document.createElement('div'); m.id='regModal'; m.className='hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4';
     m.innerHTML=`
@@ -182,12 +190,11 @@ function ensureUIChrome(){
           <input id="rgAvatar"  class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Avatar URL (optional)"/>
           <textarea id="rgBio" rows="2" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Bio (optional)"></textarea>
           <button id="regSubmit" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Sign up</button>
-          <small class="text-black/60">Requires a valid PAT connection (Connect button).</small>
+          <small class="text-black/60">Requires a valid PAT connection (Connect).</small>
         </div>
       </div>`;
     document.body.appendChild(m);
   }
-  // Settings modal
   if(!byId('settingsModal')){
     const m=document.createElement('div'); m.id='settingsModal'; m.className='hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4';
     m.innerHTML=`
@@ -197,8 +204,8 @@ function ensureUIChrome(){
           <button id="settingsClose" class="rounded bg-black/10 px-2 py-1 text-xs">Close</button>
         </div>
         <div class="grid gap-2 text-sm">
-          <input id="stDisplay" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Display name" />
-          <input id="stAvatar"  class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Avatar URL" />
+          <input id="stDisplay" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Display name"/>
+          <input id="stAvatar"  class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Avatar URL"/>
           <textarea id="stBio" rows="3" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="Short bio"></textarea>
           <div class="flex items-center justify-between mt-1">
             <button id="settingsSave" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Save</button>
@@ -207,7 +214,6 @@ function ensureUIChrome(){
       </div>`;
     document.body.appendChild(m);
   }
-  // Connect modal
   if(!byId('connectModal')){
     const m=document.createElement('div'); m.id='connectModal'; m.className='hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4';
     m.innerHTML=`
@@ -217,17 +223,16 @@ function ensureUIChrome(){
           <button id="connectClose" class="rounded bg-black/10 px-2 py-1 text-xs">Close</button>
         </div>
         <div class="grid gap-2 text-sm">
-          <input id="ghOwner"  class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="owner (e.g., hunter9201)"/>
-          <input id="ghRepo"   class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="repo (e.g., momentshub-data)"/>
-          <input id="ghBranch" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="branch (e.g., main)" value="main"/>
+          <input id="ghOwner"  class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="owner" value="hunter9201"/>
+          <input id="ghRepo"   class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="repo" value="moments"/>
+          <input id="ghBranch" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="branch" value="main"/>
           <input id="ghToken"  class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="GitHub PAT (repo scope)"/>
           <button id="connectSave" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Save & Connect</button>
-          <small class="text-black/60">Use a PAT limited to this repo. Keep the repo PRIVATE for privacy.</small>
+          <small class="text-black/60">Use a PAT limited to this repo.</small>
         </div>
       </div>`;
     document.body.appendChild(m);
   }
-  // Story viewer and Studio
   if(!byId('storyModal')){
     const m=document.createElement('div'); m.id='storyModal'; m.className='hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4';
     document.body.appendChild(m);
@@ -248,7 +253,7 @@ function ensureUIChrome(){
 }
 
 /* ------------------ Auth ------------------ */
-function normHandle(h){ if(!h) return ''; h=h.replace(/^@/,'').trim(); if(!/^[A-Za-z0-9._-]{2,20}$/.test(h)){ toast('Handle must be 2–20 chars: letters, numbers, . _ -'); return ''; } return h; }
+function normHandle(h){ if(!h) return ''; h=h.replace(/^@/,'').trim(); if(!/^[A-Za-z0-9._-]{2,20}$/.test(h)){ toast('Handle must be 2–20 chars'); return ''; } return h; }
 function getUser(){ return getSS(SS.auth); }
 function setUser(u){ setSS(SS.auth,u); applyUserToUI(u); }
 function clearUser(){ clrSS(SS.auth); applyUserToUI(null); }
@@ -281,6 +286,19 @@ function bindSearch(){
   const s=byId('search'); on(s,'input',()=>{ const q=(s.value||'').toLowerCase().trim(); Array.from(document.querySelectorAll('[data-searchable]')).forEach(n=>{ n.style.display=(n.dataset.searchable||'').includes(q)?'':''; }); });
 }
 
+/* ------------------ HEIC normalize ------------------ */
+async function normalizeFile(file){
+  try{
+    if ((/^image\/heic$/i.test(file.type)) || /\.heic$/i.test(file.name)) {
+      if (typeof heic2any!=='undefined'){
+        const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+        return new File([blob], file.name.replace(/\.heic$/i,'.jpg'), { type: 'image/jpeg' });
+      }
+    }
+  }catch{ /* ignore, fallback to original */ }
+  return file;
+}
+
 /* ------------------ GH-backed Stories/Moments ------------------ */
 async function ghLoadMoments(){
   const me=getUser(); if(!me){ momentsCache=[]; return []; }
@@ -303,6 +321,7 @@ async function ghLoadStories(){
   storiesCache = metas.filter(s=> (nowTs-(s.created||0))<STORY_TTL).sort((a,b)=> (b.created||0)-(a.created||0));
 }
 async function ghUploadMediaFile(handle, file){
+  file = await normalizeFile(file);
   const ts = Date.now();
   const safeName = file.name.replace(/[^A-Za-z0-9._-]/g,'_');
   const path = `media/${handle}/${ts}_${safeName}`;
@@ -361,7 +380,7 @@ async function renderHomeFeed(){
     const wrap=document.createElement('div');
     wrap.className='mom-item rounded-2xl border border-black/10 bg-black/90 text-white overflow-hidden relative';
     wrap.dataset.searchable = `${(m.caption||'')+' '+(m.tags||[]).join(' ')+' '+(m.author||'')}`.toLowerCase();
-    const mediaURL = await blobURLFor(m.mediaPath);
+    const mediaURL = await mediaURLFromPath(m.mediaPath);
     const mediaHTML = m.kind==='video'
       ? `<video class="mom-video absolute inset-0 h-full w-full object-cover" src="${mediaURL}" playsinline muted loop></video>`
       : `<img class="absolute inset-0 h-full w-full object-cover" src="${mediaURL}" alt="">`;
@@ -400,7 +419,7 @@ async function renderMomentsFeed(){
     const wrap=document.createElement('div');
     wrap.className='mom-item rounded-2xl border border-black/10 bg-black/90 text-white overflow-hidden relative';
     wrap.dataset.searchable = `${(m.caption||'')+' '+(m.tags||[]).join(' ')+' '+(m.author||'')}`.toLowerCase();
-    const mediaURL = await blobURLFor(m.mediaPath);
+    const mediaURL = await mediaURLFromPath(m.mediaPath);
     const media = m.kind==='video'
       ? `<video class="mom-video absolute inset-0 h-full w-full object-cover" src="${mediaURL}" playsinline muted loop></video>`
       : `<img class="absolute inset-0 h-full w-full object-cover" src="${mediaURL}" alt="">`;
@@ -440,7 +459,7 @@ async function renderStoriesStrip(){
   for(let i=0;i<valid.length;i++){
     const s=valid[i];
     const btn=document.createElement('button'); btn.className='flex flex-col items-center gap-1';
-    const blobURL = await blobURLFor(s.mediaPath);
+    const blobURL = await mediaURLFromPath(s.mediaPath);
     const media = s.kind==='image'
       ? `<img src="${blobURL}" class="h-16 w-16 object-cover rounded-full border-2 border-fuchsia-400"/>`
       : `<video src="${blobURL}" class="h-16 w-16 object-cover rounded-full border-2 border-fuchsia-400" muted></video>`;
@@ -469,14 +488,14 @@ function openStoryViewer(list, startIndex){
   let i=startIndex, timer=null, t0=0, dur=7000;
   async function render(){
     const s = list[i]; if(!s){ modal.classList.add('hidden'); return; }
-    wrap.innerHTML=''; const url=await blobURLFor(s.mediaPath);
+    wrap.innerHTML=''; const url=await mediaURLFromPath(s.mediaPath);
     if(s.kind==='video'){ const v=document.createElement('video'); v.src=url; v.autoplay=true; v.muted=true; v.playsInline=true; v.className='h-full w-full object-cover'; wrap.appendChild(v); }
     else { const img=document.createElement('img'); img.src=url; img.className='h-full w-full object-cover'; wrap.appendChild(img); }
     meta.textContent = `${s.author||''}`;
     bar.style.width='0%'; t0=now(); clearInterval(timer);
     timer=setInterval(()=>{ const p=Math.min(1,(now()-t0)/dur); bar.style.width=(p*100)+'%'; if(p>=1){ i=Math.min(i+1, list.length-1); render(); } },50);
     byId('st-del').onclick = async ()=>{
-      const me=getUser(); if(!me || me.handle!==s.handle){ toast('Only author can delete this story'); return; }
+      const me=getUser(); if(!me || me.handle!==s.handle){ toast('Only author can delete'); return; }
       try{ await ghDeleteStory(s); toast('Deleted'); await refreshAll(); modal.classList.add('hidden'); }catch(e){ toast(e.message); }
     };
   }
@@ -490,8 +509,10 @@ function openStoryViewer(list, startIndex){
 function bindComposer(){
   const momInput=byId('momFile'); if(momInput && !momInput.__bound__){
     momInput.__bound__=true;
-    on(momInput,'change',(e)=>{
-      const files=Array.from(e.target.files||[]).filter(f=> /^image\/|^video\//.test(f.type));
+    on(momInput,'change', async (e)=>{
+      const raw=Array.from(e.target.files||[]);
+      const norm=[]; for(const f of raw){ const ff=await normalizeFile(f); norm.push(ff); }
+      const files=norm.filter(f=> /^image\/|^video\//.test(f.type));
       if(!files.length){ toast('Images/videos only'); momInput.value=''; return; }
       const room = Math.max(0, 4 - momSelected.length);
       files.slice(0,room).forEach(f=> momSelected.push({file:f, kind: f.type.startsWith('video')?'video':'image', name:f.name}));
@@ -503,7 +524,9 @@ function bindComposer(){
     stoInput.__bound__=true;
     on(stoInput,'change', async (e)=>{
       const me=getUser(); if(!me){ toast('Sign in first'); return; }
-      const files=Array.from(e.target.files||[]).filter(f=> /^image\/|^video\//.test(f.type)).slice(0,4);
+      const raw=Array.from(e.target.files||[]).slice(0,4);
+      const norm=[]; for(const f of raw){ const ff=await normalizeFile(f); norm.push(ff); }
+      const files=norm.filter(f=> /^image\/|^video\//.test(f.type));
       let ok=0, bad=0;
       for(const f of files){ try{ await ghCreateStory(me.handle, me, f); ok++; }catch{ bad++; } await sleep(50); }
       stoInput.value='';
@@ -660,11 +683,11 @@ function bindKeyboardNav(){
 function openConnect(){
   ensureUIChrome();
   const m = byId('connectModal');
-  const gh = getSS(SS.gh) || {};
-  byId('ghOwner').value  = gh.owner  || 'hunter9201';
-  byId('ghRepo').value   = gh.repo   || 'momentshub-data';
-  byId('ghBranch').value = gh.branch || 'main';
-  byId('ghToken').value  = gh.token  || '';
+  const gh = getSS(SS.gh) || GH;
+  byId('ghOwner').value  = gh.owner;
+  byId('ghRepo').value   = gh.repo;
+  byId('ghBranch').value = gh.branch;
+  byId('ghToken').value  = gh.token || '';
   m.classList.remove('hidden');
 }
 function closeConnect(){ byId('connectModal').classList.add('hidden'); }
@@ -710,7 +733,7 @@ async function refreshAll(){
 ready(async ()=>{
   ensureUIChrome();
 
-  // Global delegated clicks: buttons always work even if DOM changes
+  // Global delegated clicks: buttons always work
   document.addEventListener('click', (e)=>{
     const sel = (s)=> e.target.closest(s);
     if (sel('#connectGitHub')) { e.preventDefault(); openConnect(); return; }
