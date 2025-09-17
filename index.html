@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Moments — Social Stories & Moments</title>
+  <title>Moments — Private Hub (GitHub Pages)</title>
   <meta name="color-scheme" content="light"/>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -15,7 +15,6 @@
     .mom-feed{scroll-snap-type:y mandatory; overflow-y:auto; max-height:85vh}
     .mom-item{scroll-snap-align:center}
     .chip{font-size:.7rem;padding:.2rem .5rem;border-radius:999px;background:rgba(0,0,0,.08)}
-    .hidden-important{display:none !important;}
   </style>
 </head>
 <body class="min-h-screen radial-bg text-slate-900">
@@ -27,13 +26,14 @@
           <div class="h-9 w-9 animate-[spin_9s_linear_infinite] rounded-xl bg-gradient-to-br from-sky-300 via-fuchsia-300 to-amber-300"></div>
           <div>
             <div class="text-xs uppercase tracking-widest text-black/60">Moments</div>
-            <div class="text-lg font-extrabold leading-5">Stories • Moments • Chat</div>
+            <div class="text-lg font-extrabold leading-5">Private Stories • Moments • Chat</div>
           </div>
         </div>
         <div class="flex items-center gap-2">
           <input id="search" placeholder="Search moments/users…" class="w-64 max-w-[60vw] rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm shadow-sm outline-none placeholder:text-black/40 focus:border-black/20 focus:ring-2 focus:ring-black/10"/>
           <button id="openSettings" class="rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold shadow-sm">⚙ Settings</button>
-          <!-- Auth buttons are injected by app.js if missing -->
+          <button id="connectGitHub" class="rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold shadow-sm">🔗 Connect</button>
+          <!-- Auth buttons injected by app.js: Sign in / Sign up / Log out -->
         </div>
       </div>
       <nav class="mt-3 flex flex-wrap gap-2">
@@ -47,7 +47,7 @@
 
   <main class="mx-auto max-w-6xl px-4 py-6 space-y-8">
 
-    <!-- STORIES STRIP -->
+    <!-- STORIES (48h) -->
     <section class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
       <div class="flex items-center justify-between">
         <div class="text-xs uppercase tracking-widest text-black/50">Stories (48h)</div>
@@ -59,9 +59,8 @@
       <div id="storiesStrip" class="mt-3 flex gap-3 overflow-x-auto pb-2"></div>
     </section>
 
-    <!-- TABS -->
+    <!-- FEED -->
     <section id="tab-home" class="space-y-6">
-      <!-- Vertical feed of Moments (autoplay videos) -->
       <div class="rounded-2xl border border-black/10 bg-white/80 p-0 card">
         <div class="flex items-center justify-between p-4">
           <div class="text-xs uppercase tracking-widest text-black/50">For You</div>
@@ -74,9 +73,9 @@
       </div>
     </section>
 
+    <!-- MOMENTS -->
     <section id="tab-moments" class="hidden space-y-6">
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <!-- Composer -->
         <div class="order-2 lg:order-1 lg:col-span-1 rounded-2xl border border-black/10 bg-white/80 p-4 card h-max">
           <div class="text-xs uppercase tracking-widest text-black/50">Create a Moment</div>
           <div class="mt-3 grid gap-2 text-sm">
@@ -89,21 +88,18 @@
             <input id="momTags" class="rounded-xl border border-black/10 bg-white/80 px-3 py-2" placeholder="#tags (comma)"/>
             <button id="openStudio" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">🎨 Open Studio (first image)</button>
             <button id="momPost" class="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Post Moment</button>
-            <small class="text-black/50">Your media stays in this browser unless you later add GitHub sync (optional).</small>
           </div>
         </div>
-
-        <!-- Moments feed (your posts first) -->
         <div class="order-1 lg:order-2 lg:col-span-2 rounded-2xl border border-black/10 bg-white/80 p-0 card">
           <div class="flex items-center justify-between p-4">
             <div class="text-xs uppercase tracking-widest text-black/50">Latest Moments</div>
-            <div class="flex items-center gap-2 text-xs"><span class="chip">Autoplay videos</span></div>
           </div>
           <div id="momentsFeed" class="mom-feed px-3 pb-4 space-y-4"></div>
         </div>
       </div>
     </section>
 
+    <!-- CHAT -->
     <section id="tab-chat" class="hidden space-y-6">
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div class="lg:col-span-1 rounded-2xl border border-black/10 bg-white/80 p-4 card">
@@ -124,6 +120,7 @@
       </div>
     </section>
 
+    <!-- PROFILE -->
     <section id="tab-profile" class="hidden space-y-6">
       <div class="rounded-2xl border border-black/10 bg-white/80 p-4 card">
         <div class="flex items-center gap-3">
@@ -140,48 +137,8 @@
 
   </main>
 
-  <!-- Story Viewer Modal -->
-  <div id="storyModal" class="hidden fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"></div>
+  <!-- Modals injected by app.js: Auth, Sign up, Settings, Connect, Story Viewer, Studio -->
 
-  <!-- Settings Modal (injected by app.js if missing) -->
-  <!-- Auth Modal (injected by app.js if missing) -->
-
-  <!-- Studio Pro Modal -->
-  <div id="studio" class="hidden fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4">
-    <div class="w-full max-w-3xl rounded-2xl bg-white p-4 shadow-lg">
-      <div class="flex items-center justify-between mb-2">
-        <div class="text-sm font-bold">Studio Pro — edit first selected image</div>
-        <button id="studioClose" class="rounded bg-black/10 px-2 py-1 text-xs">Close</button>
-      </div>
-      <div class="grid gap-3 md:grid-cols-3">
-        <div class="md:col-span-2">
-          <canvas id="studioCanvas" class="w-full rounded-lg border border-black/10 bg-black"></canvas>
-        </div>
-        <div class="grid gap-2 text-sm">
-          <div class="text-xs uppercase tracking-widest text-black/50">Transform</div>
-          <label>Zoom <input id="stZoom" type="range" min="0.5" max="3" step="0.01" value="1"></label>
-          <label>Rotate <input id="stRotate" type="range" min="-180" max="180" step="1" value="0"></label>
-          <label>Pan X <input id="stPanX" type="range" min="-300" max="300" step="1" value="0"></label>
-          <label>Pan Y <input id="stPanY" type="range" min="-300" max="300" step="1" value="0"></label>
-          <div class="text-xs uppercase tracking-widest text-black/50 mt-2">Filters</div>
-          <label>Brightness <input id="stBright" type="range" min="0.2" max="2" step="0.01" value="1"></label>
-          <label>Contrast <input id="stContrast" type="range" min="0.2" max="2" step="0.01" value="1"></label>
-          <label>Saturation <input id="stSat" type="range" min="0" max="3" step="0.01" value="1"></label>
-          <label>Hue <input id="stHue" type="range" min="-180" max="180" step="1" value="0"></label>
-          <label>Blur(px) <input id="stBlur" type="range" min="0" max="8" step="0.1" value="0"></label>
-          <div class="text-xs uppercase tracking-widest text-black/50 mt-2">Overlays</div>
-          <div class="flex gap-2">
-            <button id="stAddText" class="rounded border border-black/10 bg-white/80 px-2 py-1 text-xs">Add Text</button>
-            <button id="stAddEmoji" class="rounded border border-black/10 bg-white/80 px-2 py-1 text-xs">Add Emoji</button>
-            <button id="stAddSticker" class="rounded border border-black/10 bg-white/80 px-2 py-1 text-xs">Add Sticker</button>
-          </div>
-          <button id="studioExport" class="mt-3 rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold shadow-sm">Export to Moment</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- App script -->
   <script defer src="./app.js"></script>
 </body>
 </html>
