@@ -1,5 +1,6 @@
 /* ===========================================================
    Moments — Private Hub via GitHub Contents API (Pages only)
+   Fix: media display via Git Git/Blobs API (no redirect/CORS)
    Self-registration + GH-PAT + images/videos only + 48h stories
    Unread counts • Delete • Autoplay • Simple Studio • No recursion
    Connect/Settings/Sign-in buttons -> event delegation (always work)
@@ -34,7 +35,6 @@ const clrSS=(k)=>{ try{sessionStorage.removeItem(k)}catch{} };
 const GH = { owner:'', repo:'', branch:'main', token:'' };
 function setGH(cfg){ Object.assign(GH,cfg||{}); setSS(SS.gh, GH); }
 function ghHeaders(raw=false){
-  // If your PAT is a fine-grained token, "Bearer" also works; classic PAT supports "token"
   return { 'Authorization':'token '+GH.token, 'Accept': raw?'application/vnd.github.v3.raw':'application/vnd.github+json' };
 }
 async function ghGet(path, raw=false){
@@ -93,11 +93,38 @@ async function ghListDir(path){
   const arr = await res.json();
   return Array.isArray(arr) ? arr : [];
 }
-async function ghGetRawBlobURL(path){
-  const res = await ghGet(path, true); // raw
-  const blob = await res.blob();
+
+/* ------ NEW: robust raw loader via Git Data Blobs (no redirects) ------ */
+function guessMime(name=''){
+  const ext = name.split('.').pop().toLowerCase();
+  switch(ext){
+    case 'jpg': case 'jpeg': return 'image/jpeg';
+    case 'png': return 'image/png';
+    case 'webp': return 'image/webp';
+    case 'gif': return 'image/gif';
+    case 'mp4': case 'm4v': return 'video/mp4';
+    case 'webm': return 'video/webm';
+    case 'mov': return 'video/quicktime';
+    default: return 'application/octet-stream';
+  }
+}
+async function ghBlobURLFromPath(path){
+  // 1) Get metadata to learn file SHA and name
+  const meta = await ghGet(path,false);              // { name, sha, ... }
+  const sha = meta.sha, name = meta.name || '';
+  // 2) Fetch blob by SHA (always returns base64 JSON, no redirect)
+  const res = await fetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}/git/blobs/${sha}`, { headers: ghHeaders(false) });
+  if(!res.ok) throw new Error(`Git blob ${sha} ${res.status}`);
+  const blobJson = await res.json();
+  const b64data = (blobJson.content || '').replace(/\n/g,'');
+  // 3) Decode base64 -> Uint8Array -> Blob -> objectURL
+  const bin = atob(b64data);
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+  const blob = new Blob([bytes], { type: guessMime(name) });
   return URL.createObjectURL(blob);
 }
+async function blobURLFor(mediaPath){ return await ghBlobURLFromPath(mediaPath); }
 
 /* ------------------ App State ------------------ */
 const STORY_TTL = 48*60*60*1000; // 48h
@@ -316,7 +343,6 @@ async function ghDeleteStory(meta){
   await ghDelete(path, `delete story ${meta.id}`);
   if(meta.mediaPath) await ghDelete(meta.mediaPath, `delete story media ${meta.id}`);
 }
-async function blobURLFor(mediaPath){ return await ghGetRawBlobURL(mediaPath); }
 
 /* ------------------ Rendering ------------------ */
 function autoPlayVisible(){
