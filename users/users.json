@@ -1,3 +1,10 @@
 {
-  "users": []
+  "users": [
+    {
+      "handle": "arthur",
+      "display": "arthur",
+      "avatar": "",
+      "bio": ""
+    }
+  ]
 }
